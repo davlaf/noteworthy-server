@@ -1,5 +1,4 @@
-Hello everyone!
+You are on the backend branch!
 
-This is the backend!
-
-there are bees in my skin
+Run the setup_build shell script to get the required dependencies
+Run the generate_server.sh to generate the server

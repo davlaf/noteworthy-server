@@ -2,3 +2,5 @@ build/**
 .vscode
 openapi/.openapi-generator
 openapi/build
+gmon.out
+openapi/external

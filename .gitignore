@@ -6,3 +6,4 @@ gmon.out
 openapi/external
 build
 external
+.venv

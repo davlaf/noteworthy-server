@@ -22,7 +22,7 @@
 
 #include "ApiBase.h"
 
-#include "DefaultApiImpl.h"
+#include "RoomApiImpl.h"
 
 #define PISTACHE_SERVER_THREADS     2
 #define PISTACHE_SERVER_MAX_REQUEST_SIZE 32768
@@ -80,7 +80,7 @@ int main() {
 
     auto apiImpls = std::vector<std::shared_ptr<ApiBase>>();
     
-    apiImpls.push_back(std::make_shared<DefaultApiImpl>(router));
+    apiImpls.push_back(std::make_shared<RoomApiImpl>(router));
 
     for (auto api : apiImpls) {
         api->init();

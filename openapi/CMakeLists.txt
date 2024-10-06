@@ -11,25 +11,12 @@ set(EXTERNAL_INSTALL_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/external)
 ExternalProject_Add(PISTACHE
     GIT_REPOSITORY https://github.com/pistacheio/pistache.git
     BUILD_IN_SOURCE true
-    CMAKE_ARGS -DPISTACHE_BUILD_TESTS=OFF
     INSTALL_COMMAND meson setup build --prefix=${EXTERNAL_INSTALL_LOCATION} --libdir=lib && meson install -C build
 )
 
 ExternalProject_Add(NLOHMANN
     GIT_REPOSITORY https://github.com/nlohmann/json.git
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION} -DJSON_BuildTests=OFF
-)
-
-ExternalProject_Add(LIBWEBSOCKETS
-    GIT_REPOSITORY https://github.com/warmcat/libwebsockets.git
-    GIT_TAG v4.3-stable  # Optionally specify a version or tag
-
-    CMAKE_ARGS
-        -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
-        -DLWS_WITH_SHARED=OFF
-        -DLWS_WTIH_STATIC=ON
-        -DLWS_WITHOUT_TESTAPPS=ON
-        -DLWS_WITH_SSL=OFF
 )
 
 include_directories(${EXTERNAL_INSTALL_LOCATION}/include)
@@ -47,5 +34,5 @@ file(GLOB SRCS
 )
 
 add_executable(${PROJECT_NAME} ${SRCS} )
-add_dependencies(${PROJECT_NAME} PISTACHE NLOHMANN LIBWEBSOCKETS)
-target_link_libraries(${PROJECT_NAME} websockets pistache pthread)
+add_dependencies(${PROJECT_NAME} PISTACHE NLOHMANN)
+target_link_libraries(${PROJECT_NAME} pistache pthread)

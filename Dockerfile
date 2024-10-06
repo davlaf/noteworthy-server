@@ -1,5 +1,5 @@
 # Stage 1: Build the application
-FROM ubuntu:latest as builder
+FROM ubuntu:latest AS builder
 
 # Cache the apt-get update and install steps by combining them into one RUN instruction
 RUN apt-get -y update && \
@@ -7,7 +7,7 @@ RUN apt-get -y update && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy the source code
-COPY ./openapi /usr/src/app
+COPY . /usr/src/app
 
 # Set the working directory
 WORKDIR /usr/src/app

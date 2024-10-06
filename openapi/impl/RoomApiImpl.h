@@ -11,13 +11,13 @@
 */
 
 /*
-* DefaultApiImpl.h
+* RoomApiImpl.h
 *
 * 
 */
 
-#ifndef DEFAULT_API_IMPL_H_
-#define DEFAULT_API_IMPL_H_
+#ifndef ROOM_API_IMPL_H_
+#define ROOM_API_IMPL_H_
 
 
 #include <pistache/endpoint.h>
@@ -26,7 +26,7 @@
 #include <memory>
 #include <optional>
 
-#include <DefaultApi.h>
+#include <RoomApi.h>
 
 
 #include "Page.h"
@@ -39,13 +39,12 @@ namespace org::openapitools::server::api
 
 using namespace org::openapitools::server::model;
 
-class  DefaultApiImpl : public org::openapitools::server::api::DefaultApi {
+class  RoomApiImpl : public org::openapitools::server::api::RoomApi {
 public:
-    explicit DefaultApiImpl(const std::shared_ptr<Pistache::Rest::Router>& rtr);
-    ~DefaultApiImpl() override = default;
+    explicit RoomApiImpl(const std::shared_ptr<Pistache::Rest::Router>& rtr);
+    ~RoomApiImpl() override = default;
 
     void rooms_post(const User &user, Pistache::Http::ResponseWriter &response);
-    void rooms_room_id_connect_post(const std::string &roomId, const User &user, Pistache::Http::ResponseWriter &response);
     void rooms_room_id_delete(const std::string &roomId, Pistache::Http::ResponseWriter &response);
     void rooms_room_id_export_get(const std::string &roomId, Pistache::Http::ResponseWriter &response);
     void rooms_room_id_get(const std::string &roomId, Pistache::Http::ResponseWriter &response);

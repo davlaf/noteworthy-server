@@ -10,6 +10,8 @@ servers:
 paths:
   /rooms:
     post:
+      tags:
+        - room
       summary: Create a room
       requestBody:
         required: true
@@ -26,26 +28,12 @@ paths:
                 $ref: "#/components/schemas/User"
         "500":
           $ref: '#/components/responses/ServerError'
-  /rooms/{roomId}/connect:
-    post:
-      summary: Ask to connect to a room
-      parameters:
-        - $ref: '#/components/parameters/roomId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/User"
-      responses:
-        "200":
-          description: Successfully asked
-        "500":
-          $ref: '#/components/responses/ServerError'
   /rooms/{roomId}/:
     parameters:
       - $ref: '#/components/parameters/roomId'
     get:
+      tags:
+        - room
       summary: Get the current state of room by its id
       security:
         - bearerAuth: []
@@ -61,6 +49,8 @@ paths:
         "500":
           $ref: '#/components/responses/ServerError'
     delete:
+      tags:
+        - room
       summary: Delete the room
       security:
         - bearerAuth: ['owner']
@@ -73,6 +63,8 @@ paths:
           $ref: '#/components/responses/ServerError'
   /rooms/{roomId}/export:
     get:
+      tags:
+        - room
       description: export the room as pdf or as a json
       parameters:
       - $ref: '#/components/parameters/roomId'
@@ -98,6 +90,8 @@ paths:
     parameters:
       - $ref: '#/components/parameters/roomId'
     get:
+      tags:
+        - room
       summary: Get the current state of a page by its id
       security:
         - bearerAuth: []
@@ -116,6 +110,8 @@ paths:
     parameters:
       - $ref: '#/components/parameters/roomId'
     get:
+      tags:
+        - room
       summary: Get a list of users in a room
       security:
         - bearerAuth: []

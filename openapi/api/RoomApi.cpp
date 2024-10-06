@@ -10,7 +10,7 @@
 * Do not edit the class manually.
 */
 
-#include "DefaultApi.h"
+#include "RoomApi.h"
 #include "Helpers.h"
 
 namespace org::openapitools::server::api
@@ -19,39 +19,38 @@ namespace org::openapitools::server::api
 using namespace org::openapitools::server::helpers;
 using namespace org::openapitools::server::model;
 
-const std::string DefaultApi::base = "";
+const std::string RoomApi::base = "";
 
-DefaultApi::DefaultApi(const std::shared_ptr<Pistache::Rest::Router>& rtr)
+RoomApi::RoomApi(const std::shared_ptr<Pistache::Rest::Router>& rtr)
     : ApiBase(rtr)
 {
 }
 
-void DefaultApi::init() {
+void RoomApi::init() {
     setupRoutes();
 }
 
-void DefaultApi::setupRoutes() {
+void RoomApi::setupRoutes() {
     using namespace Pistache::Rest;
 
-    Routes::Post(*router, base + "/rooms", Routes::bind(&DefaultApi::rooms_post_handler, this));
-    Routes::Post(*router, base + "/rooms/:roomId/connect", Routes::bind(&DefaultApi::rooms_room_id_connect_post_handler, this));
-    Routes::Delete(*router, base + "/rooms/:roomId/", Routes::bind(&DefaultApi::rooms_room_id_delete_handler, this));
-    Routes::Get(*router, base + "/rooms/:roomId/export", Routes::bind(&DefaultApi::rooms_room_id_export_get_handler, this));
-    Routes::Get(*router, base + "/rooms/:roomId/", Routes::bind(&DefaultApi::rooms_room_id_get_handler, this));
-    Routes::Get(*router, base + "/rooms/:roomId/pages", Routes::bind(&DefaultApi::rooms_room_id_pages_get_handler, this));
-    Routes::Get(*router, base + "/rooms/:roomId/users", Routes::bind(&DefaultApi::rooms_room_id_users_get_handler, this));
+    Routes::Post(*router, base + "/rooms", Routes::bind(&RoomApi::rooms_post_handler, this));
+    Routes::Delete(*router, base + "/rooms/:roomId/", Routes::bind(&RoomApi::rooms_room_id_delete_handler, this));
+    Routes::Get(*router, base + "/rooms/:roomId/export", Routes::bind(&RoomApi::rooms_room_id_export_get_handler, this));
+    Routes::Get(*router, base + "/rooms/:roomId/", Routes::bind(&RoomApi::rooms_room_id_get_handler, this));
+    Routes::Get(*router, base + "/rooms/:roomId/pages", Routes::bind(&RoomApi::rooms_room_id_pages_get_handler, this));
+    Routes::Get(*router, base + "/rooms/:roomId/users", Routes::bind(&RoomApi::rooms_room_id_users_get_handler, this));
 
     // Default handler, called when a route is not found
-    router->addCustomHandler(Routes::bind(&DefaultApi::default_api_default_handler, this));
+    router->addCustomHandler(Routes::bind(&RoomApi::room_api_default_handler, this));
 }
 
-void DefaultApi::handleParsingException(const std::exception& ex, Pistache::Http::ResponseWriter &response) const noexcept
+void RoomApi::handleParsingException(const std::exception& ex, Pistache::Http::ResponseWriter &response) const noexcept
 {
     std::pair<Pistache::Http::Code, std::string> codeAndError = handleParsingException(ex);
     response.send(codeAndError.first, codeAndError.second);
 }
 
-std::pair<Pistache::Http::Code, std::string> DefaultApi::handleParsingException(const std::exception& ex) const noexcept
+std::pair<Pistache::Http::Code, std::string> RoomApi::handleParsingException(const std::exception& ex) const noexcept
 {
     try {
         throw;
@@ -64,18 +63,18 @@ std::pair<Pistache::Http::Code, std::string> DefaultApi::handleParsingException(
     }
 }
 
-void DefaultApi::handleOperationException(const std::exception& ex, Pistache::Http::ResponseWriter &response) const noexcept
+void RoomApi::handleOperationException(const std::exception& ex, Pistache::Http::ResponseWriter &response) const noexcept
 {
     std::pair<Pistache::Http::Code, std::string> codeAndError = handleOperationException(ex);
     response.send(codeAndError.first, codeAndError.second);
 }
 
-std::pair<Pistache::Http::Code, std::string> DefaultApi::handleOperationException(const std::exception& ex) const noexcept
+std::pair<Pistache::Http::Code, std::string> RoomApi::handleOperationException(const std::exception& ex) const noexcept
 {
     return std::make_pair(Pistache::Http::Code::Internal_Server_Error, ex.what());
 }
 
-void DefaultApi::rooms_post_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
+void RoomApi::rooms_post_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
     try {
 
 
@@ -106,40 +105,7 @@ void DefaultApi::rooms_post_handler(const Pistache::Rest::Request &request, Pist
     }
 
 }
-void DefaultApi::rooms_room_id_connect_post_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
-    try {
-
-    // Getting the path params
-    auto roomId = request.param(":roomId").as<std::string>();
-    
-    // Getting the body param
-    
-    User user;
-    
-    try {
-        nlohmann::json::parse(request.body()).get_to(user);
-        user.validate();
-    } catch (std::exception &e) {
-        this->handleParsingException(e, response);
-        return;
-    }
-
-    try {
-        this->rooms_room_id_connect_post(roomId, user, response);
-    } catch (Pistache::Http::HttpError &e) {
-        response.send(static_cast<Pistache::Http::Code>(e.code()), e.what());
-        return;
-    } catch (std::exception &e) {
-        this->handleOperationException(e, response);
-        return;
-    }
-
-    } catch (std::exception &e) {
-        response.send(Pistache::Http::Code::Internal_Server_Error, e.what());
-    }
-
-}
-void DefaultApi::rooms_room_id_delete_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
+void RoomApi::rooms_room_id_delete_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
     try {
 
     // Getting the path params
@@ -160,7 +126,7 @@ void DefaultApi::rooms_room_id_delete_handler(const Pistache::Rest::Request &req
     }
 
 }
-void DefaultApi::rooms_room_id_export_get_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
+void RoomApi::rooms_room_id_export_get_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
     try {
 
     // Getting the path params
@@ -181,7 +147,7 @@ void DefaultApi::rooms_room_id_export_get_handler(const Pistache::Rest::Request 
     }
 
 }
-void DefaultApi::rooms_room_id_get_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
+void RoomApi::rooms_room_id_get_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
     try {
 
     // Getting the path params
@@ -202,7 +168,7 @@ void DefaultApi::rooms_room_id_get_handler(const Pistache::Rest::Request &reques
     }
 
 }
-void DefaultApi::rooms_room_id_pages_get_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
+void RoomApi::rooms_room_id_pages_get_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
     try {
 
     // Getting the path params
@@ -223,7 +189,7 @@ void DefaultApi::rooms_room_id_pages_get_handler(const Pistache::Rest::Request &
     }
 
 }
-void DefaultApi::rooms_room_id_users_get_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
+void RoomApi::rooms_room_id_users_get_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
     try {
 
     // Getting the path params
@@ -245,7 +211,7 @@ void DefaultApi::rooms_room_id_users_get_handler(const Pistache::Rest::Request &
 
 }
 
-void DefaultApi::default_api_default_handler(const Pistache::Rest::Request &, Pistache::Http::ResponseWriter response) {
+void RoomApi::room_api_default_handler(const Pistache::Rest::Request &, Pistache::Http::ResponseWriter response) {
     response.send(Pistache::Http::Code::Not_Found, "The requested method does not exist");
 }
 

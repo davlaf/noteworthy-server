@@ -10,13 +10,13 @@
 * Do not edit the class manually.
 */
 /*
- * DefaultApi.h
+ * RoomApi.h
  *
  * 
  */
 
-#ifndef DefaultApi_H_
-#define DefaultApi_H_
+#ifndef RoomApi_H_
+#define RoomApi_H_
 
 
 #include "ApiBase.h"
@@ -36,10 +36,10 @@
 namespace org::openapitools::server::api
 {
 
-class  DefaultApi : public ApiBase {
+class  RoomApi : public ApiBase {
 public:
-    explicit DefaultApi(const std::shared_ptr<Pistache::Rest::Router>& rtr);
-    ~DefaultApi() override = default;
+    explicit RoomApi(const std::shared_ptr<Pistache::Rest::Router>& rtr);
+    ~RoomApi() override = default;
     void init() override;
 
     static const std::string base;
@@ -48,13 +48,12 @@ private:
     void setupRoutes();
 
     void rooms_post_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response);
-    void rooms_room_id_connect_post_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response);
     void rooms_room_id_delete_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response);
     void rooms_room_id_export_get_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response);
     void rooms_room_id_get_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response);
     void rooms_room_id_pages_get_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response);
     void rooms_room_id_users_get_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response);
-    void default_api_default_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response);
+    void room_api_default_handler(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response);
 
     /// <summary>
     /// Helper function to handle unexpected Exceptions during Parameter parsing and validation.
@@ -92,15 +91,6 @@ private:
     /// </remarks>
     /// <param name="user"></param>
     virtual void rooms_post(const org::openapitools::server::model::User &user, Pistache::Http::ResponseWriter &response) = 0;
-    /// <summary>
-    /// Ask to connect to a room
-    /// </summary>
-    /// <remarks>
-    /// 
-    /// </remarks>
-    /// <param name="roomId">The room&#39;s ID</param>
-    /// <param name="user"></param>
-    virtual void rooms_room_id_connect_post(const std::string &roomId, const org::openapitools::server::model::User &user, Pistache::Http::ResponseWriter &response) = 0;
     /// <summary>
     /// Delete the room
     /// </summary>
@@ -146,5 +136,5 @@ private:
 
 } // namespace org::openapitools::server::api
 
-#endif /* DefaultApi_H_ */
+#endif /* RoomApi_H_ */
 

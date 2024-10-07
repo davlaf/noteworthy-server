@@ -1,17 +1,42 @@
 import asyncio
+from enum import Enum, auto
 import websockets
-import random
+import json
 
 # import logging
 # Enable logging
 # logging.basicConfig(level=logging.DEBUG)
+
+class EventsEnum(Enum):
+    NEW_STROKE = 0
+    MOVE_STROKE = auto()
+    DELETE_STROKE = auto()
+
+    NEW_TEXT_BOX = auto()
+    SET_CURSOR_TEXT_BOX = auto()
+    DELETE_CURSOR_TEXT_BOX = auto()
+    EDIT_TEXT_BOX = auto()
+    TRANSFORM_TEXT_BOX = auto()
+    DELETE_TEXT_BOX = auto()
+
+    NEW_SHAPE = auto()
+    TRANSFORM_SHAPE = auto()
+    DELETE_SHAPE = auto()
+
+    NEW_SYMBOL = auto()
+    TRANSFORM_SYMBOL = auto()
+    DELETE_SYMBOL = auto()
 
 async def test_websocket():
     uri = "ws://localhost:8081/"
     try:
         async with websockets.connect(uri, subprotocols=['echo-protocol']) as websocket:
             # Send a short message
-            message = f"Hello {random.randint(111,999)}!"
+            message = json.dumps(
+                {
+                    "type": EventsEnum.NEW_SYMBOL.value
+                }
+            )
             print(f"Sending: {message}")
             await websocket.send(message)
 

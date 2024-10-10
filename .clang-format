@@ -1,0 +1,5 @@
+# BasedOnStyle: Google # Or you can use Google, Mozilla, etc.
+NamespaceIndentation: None
+IndentWidth: 4     # Number of spaces for each indentation level
+UseTab: Never      # Use spaces instead of tabs
+TabWidth: 4        # Number of spaces per tab (in case there are any tabs in the code)

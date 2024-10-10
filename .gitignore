@@ -1,0 +1,9 @@
+build/**
+.vscode/settings.json
+openapi/.openapi-generator
+openapi/build
+gmon.out
+openapi/external
+build
+external
+.venv

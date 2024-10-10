@@ -15,26 +15,32 @@ typedef std::variant<Stroke, Shape, Symbol, TextBox> Object;
 class Page {
   public:
     // we need to add field for background image
-    void deleteObject(uint64_t id) {
+    void deleteObject(id_t id) {
         std::lock_guard<std::mutex> lock(map_mutex);
         object_map.erase(id);
     }
 
-    void addObject(uint64_t id, Object object) {
+    void addObject(id_t id, Object object) {
         std::lock_guard<std::mutex> lock(map_mutex);
         object_map[id] = object;
     }
 
-    Object getObject(uint64_t id) {
+    Object getObject(id_t id) {
         std::lock_guard<std::mutex> lock(map_mutex);
         return object_map[id];
     }
 
     // implemented this way so edited objects show up on top
-    void editObject(uint64_t id, Object new_object) {
+    void editObject(id_t id, Object new_object) {
         std::lock_guard<std::mutex> lock(map_mutex);
         void deleteObject(uint64_t id);
         object_map[id] = new_object;
+    }
+
+    void forEach(void (*manipulator)(id_t, Object)) {
+        for (const auto &[id, object] : object_map) {
+            manipulator(id, object);
+        }
     }
 
   private:

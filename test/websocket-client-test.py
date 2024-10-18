@@ -34,7 +34,16 @@ async def test_websocket():
             # Send a short message
             message = json.dumps(
                 {
-                    "type": EventsEnum.NEW_SYMBOL.value
+                    "type": EventsEnum.NEW_STROKE.value,
+                    "room_id": "12345",
+                    "owner_id": "david",
+                    "stroke_id": 143324,
+                    "points": [
+                        [500, 24],
+                        [20, 505],
+                        [30, 230],
+                        [80, 200],
+                    ],
                 }
             )
             print(f"Sending: {message}")

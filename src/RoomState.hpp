@@ -1,14 +1,22 @@
 #pragma once
 
+#include "Stroke.hpp"
 #include <cstdint>
 #include <list>
 #include <map>
 #include <mutex>
 #include <variant>
+#include <vector>
 
 #include "nlohmann/ordered_map.hpp"
 
 class Room {};
+
+class Shape {};
+
+class Symbol {};
+
+class TextBox {};
 
 typedef std::variant<Stroke, Shape, Symbol, TextBox> Object;
 
@@ -48,11 +56,3 @@ class Page {
     // maybe want to use mutable std::shared_mutex mutex_; instead
     std::mutex map_mutex;
 };
-
-class Stroke {};
-
-class Shape {};
-
-class Symbol {};
-
-class TextBox {};

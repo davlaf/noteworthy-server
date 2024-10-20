@@ -1,8 +1,23 @@
 services:
-  noteworthy:
+  noteworthy-server:
+    restart: unless-stopped
     build:
       context: .
     ports:
       - "8080:8080"
-    # environment:
-    #   PORT: 80
+      - "8081:8081"
+  noteworthy-qt: # you probably wont have this image
+    profiles:
+      - staging
+    image: davlaf/noteworthy-qt:latest
+    ports:
+      - "8084:80"
+  tunnel:
+    profiles:
+      - staging
+    container_name: cloudflared-tunnel
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run
+    # ask david for this file it will not be added to git
+    env_file: cloudflare-tunnel-secret.env

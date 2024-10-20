@@ -17,8 +17,8 @@ int WebSocketHandler::startServer(int port) {
     // Define the protocols
     static struct lws_protocols protocols[] = {
         {"http", lws_callback_http_dummy, 0, 0},
-        // max message size of 1024
-        {"echo-protocol", callbackEcho, 0, 1024},
+        // max message size of 10kb
+        {"echo-protocol", callbackEcho, 0, 10000},
         {NULL, NULL, 0, 0} // terminator
     };
 

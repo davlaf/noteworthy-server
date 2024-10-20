@@ -7,3 +7,4 @@ openapi/external
 build
 external
 .venv
+cloudflare-tunnel-secret.env

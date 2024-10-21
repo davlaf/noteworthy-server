@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Stroke.hpp"
+#include "Symbol.hpp"
+#include "Shape.hpp"
 #include <cstdint>
 #include <list>
 #include <map>
@@ -11,10 +13,6 @@
 #include "nlohmann/ordered_map.hpp"
 
 class Room {};
-
-class Shape {};
-
-class Symbol {};
 
 class TextBox {};
 

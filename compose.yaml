@@ -15,9 +15,14 @@ services:
   tunnel:
     profiles:
       - staging
+    volumes:
+      - ./cloudflare-tunnel-config.yml:/etc/cloudflared/config.yml  # The minimal config file with protocol
     container_name: cloudflared-tunnel
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     command: tunnel run
     # ask david for this file it will not be added to git
     env_file: cloudflare-tunnel-secret.env
+
+
+    

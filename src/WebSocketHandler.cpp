@@ -1,5 +1,8 @@
 #include "WebSocketHandler.hpp"
 
+#include "CanvasObject.hpp"
+#include "ServerState.hpp"
+#include "Stroke.hpp"
 #include "UserConnection.hpp"
 #include "nlohmann/json.hpp"
 #include <iostream>
@@ -69,8 +72,8 @@ int WebSocketHandler::callbackEcho(struct lws *connection,
 
     case LWS_CALLBACK_RECEIVE: {
 
-        std::cout << "Received message: " << (const char *)in
-                  << " (length: " << len << ")" << std::endl;
+        // std::cout << "Received message: " << (const char *)in
+        //           << " (length: " << len << ")" << std::endl;
 
         UserConnection &user = ws_connections[connection];
         std::string event = std::string((const char *)in).substr(0, len);
@@ -93,61 +96,91 @@ int WebSocketHandler::callbackEcho(struct lws *connection,
     return 0;
 }
 
-void WebSocketHandler::handleEvent(UserConnection &user,
-                                   const std::string &event) {
-    // parse event
-    json event_map = json::parse(event);
-
-    // could be changed to use enum
-    EventType event_type = static_cast<EventType>(event_map["type"]);
-    switch (event_type) {
-    case NEW_STROKE:
-        handleNewStroke(user, event_map);
+std::unique_ptr<CanvasObject>
+createObject(CanvasObject::ObjectType object_type) {
+    switch (object_type) {
+    case CanvasObject::STROKE:
+        return std::make_unique<Stroke>();
+    case CanvasObject::SYMBOL:
+        std::cout << "Symbol creation not supported.";
         break;
-    case MOVE_STROKE:
-        handleMoveStroke(user, event_map);
+    case CanvasObject::SHAPE:
+        std::cout << "Shape creation not supported.";
         break;
-    case DELETE_STROKE:
-        handleDeleteStroke(user, event_map);
+    case CanvasObject::TEXT:
+        std::cout << "Text creation not supported.";
         break;
-    case NEW_TEXT_BOX:
-        handleNewTextBox(user, event_map);
-        break;
-    case SET_CURSOR_TEXT_BOX:
-        handleSetCursorTextBox(user, event_map);
-        break;
-    case DELETE_CURSOR_TEXT_BOX:
-        handleDeleteCursorTextBox(user, event_map);
-        break;
-    case EDIT_TEXT_BOX:
-        handleEditTextBox(user, event_map);
-        break;
-    case TRANSFORM_TEXT_BOX:
-        handleTransformTextBox(user, event_map);
-        break;
-    case DELETE_TEXT_BOX:
-        handleDeleteTextBox(user, event_map);
-        break;
-    case NEW_SHAPE:
-        handleNewShape(user, event_map);
-        break;
-    case TRANSFORM_SHAPE:
-        handleTransformShape(user, event_map);
-        break;
-    case DELETE_SHAPE:
-        handleDeleteShape(user, event_map);
-        break;
-    case NEW_SYMBOL:
-        handleNewSymbol(user, event_map);
-        break;
-    case TRANSFORM_SYMBOL:
-        handleTransformSymbol(user, event_map);
-        break;
-    case DELETE_SYMBOL:
-        handleDeleteSymbol(user, event_map);
+    case CanvasObject::BACKGROUND_IMAGE:
+        std::cout << "Background image creation not supported.";
         break;
     default:
-        std::cerr << "invalid event" << std::endl;
+        std::cout << "Unsupported object type!";
+    }
+    assert(false); // Unsupported object
+    return nullptr;
+}
+
+void WebSocketHandler::handleEvent(UserConnection &user,
+                                   const std::string &message) {
+    std::cout << message << std::endl;
+    nlohmann::json event = nlohmann::json::parse(message);
+
+    auto event_type = static_cast<CanvasObject::EventType>(event["event_type"]);
+    switch (event_type) {
+    case CanvasObject::CREATE: {
+        state.manipulateRoom(event["room_id"], [user, event](RoomState &room) {
+            room.manipulatePage(event["page_id"], [user,
+                                                   event](Page &page) mutable {
+                auto object_type =
+                    static_cast<CanvasObject::ObjectType>(event["object_type"]);
+
+                std::unique_ptr<CanvasObject> object =
+                    createObject(object_type);
+                object->fromJson(event);
+                page.addObject(std::move(object));
+            });
+        });
         break;
+    }
+    case CanvasObject::DELETE: {
+        state.manipulateRoom(event["room_id"], [event](RoomState &room) {
+            room.manipulatePage(event["page_id"], [event](Page &page) {
+                page.deleteObject(event["object_id"]);
+            });
+        });
+
+        break;
+    }
+    case CanvasObject::MOVE:
+    case CanvasObject::SCALE:
+    case CanvasObject::ROTATE:
+    case CanvasObject::APPEND:
+    case CanvasObject::EDIT: {
+        state.manipulateRoom(event["room_id"], [event](RoomState &room) {
+            room.manipulatePage(event["page_id"], [event](Page &page) {
+                page.manipulateObject(event["object_id"],
+                                      [event](CanvasObject &canvas_object) {
+                                          canvas_object.applyEvent(event);
+                                      });
+            });
+        });
+        break;
+    }
+    default: {
+        std::cout << "event type not recognized in websockethandler";
+        assert(false);
+        break;
+    }
+    }
+
+    // forward messages to everyone
+    for (auto other_user : ws_connections) {
+        if (other_user.second == user)
+            continue;
+        if (other_user.second.room_id != event["room_id"]) {
+            continue;
+        }
+
+        other_user.second.sendEvent(message);
     }
 }

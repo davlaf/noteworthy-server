@@ -177,9 +177,10 @@ void WebSocketHandler::handleEvent(UserConnection &user,
     for (auto other_user : ws_connections) {
         if (other_user.second == user)
             continue;
-        if (other_user.second.room_id != event["room_id"]) {
-            continue;
-        }
+        // TODO: make this work
+        // if (other_user.second.room_id != event["room_id"]) {
+        //     continue;
+        // }
 
         other_user.second.sendEvent(message);
     }

@@ -6,7 +6,7 @@ class CanvasObject {
     std::string owner_id;
     std::string room_id;
     uint64_t page_id;
-    uint64_t id;
+    uint64_t object_id;
 
     virtual ~CanvasObject() = default;
 
@@ -43,14 +43,14 @@ class CanvasObject {
         json["room_id"] = room_id;
         json["page_id"] = page_id;
         json["object_type"] = getObjectType();
-        json["object_id"] = id;
+        json["object_id"] = object_id;
     };
 
     void retrieveMetaInformation(const nlohmann::json &json) {
         json.at("owner_id").get_to(owner_id);
         json.at("room_id").get_to(room_id);
         json.at("page_id").get_to(page_id);
-        json.at("object_id").get_to(id);
+        json.at("object_id").get_to(object_id);
     };
 
     // function that gets called after a change gets applied

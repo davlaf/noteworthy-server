@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <list>
 #include <map>
-#include <memory>
+#include <memory> // Include for smart pointers
 #include <mutex>
 
 #include "nlohmann/ordered_map.hpp"
@@ -21,7 +21,7 @@ class Page {
 
     void addObject(std::unique_ptr<CanvasObject> object) {
         std::lock_guard<std::mutex> lock(page_mutex);
-        object_map[object.get()->id] = std::move(object);
+        object_map[object.get()->object_id] = std::move(object);
     }
 
     void
@@ -47,6 +47,8 @@ class Page {
 class RoomState {
   public:
     std::string room_id;
+
+    RoomState(const std::string &room_id) : room_id(room_id) {};
 
     uint64_t createPageAfter(uint64_t previous_page_id) {
         // Create a unique page ID
@@ -92,7 +94,6 @@ class RoomState {
                         const std::function<void(Page &)> &manipulator) {
         std::lock_guard<std::mutex> lock(room_mutex);
         auto it = page_map.find(id);
-
         assert(it != page_map.end());
         manipulator(*it->second); // Pass to manipulator by reference
     }

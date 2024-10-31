@@ -1,9 +1,10 @@
 #pragma once
 #ifdef NOTEWORTHY_QT
+#include <qgraphicsitem.h>
 #include <qpainterpath.h>
 #endif
 #include "CanvasObject.hpp"
-#include <string>
+#include "EventTypeEnums.hpp"
 #include <vector>
 
 #include "nlohmann/json.hpp"
@@ -14,11 +15,12 @@ class Stroke : public CanvasObject {
     std::vector<std::vector<double>> points;
 #ifdef NOTEWORTHY_QT
   public:
-    std::shared_ptr<QPainterPath> path;
+    QPainterPath path;
+    QGraphicsPathItem *path_item;
 #endif
 
   public:
-    ObjectType getObjectType() { return STROKE; };
+    EventObjectType getObjectType() { return STROKE; };
 
     virtual void toJson(nlohmann::json &json) {
         addMetaInformation(json);
@@ -69,7 +71,7 @@ class Stroke : public CanvasObject {
     createAppendEvent(nlohmann::json &json,
                       std::vector<std::vector<double>> new_points) {
         addMetaInformation(json);
-        json["change_type"] = APPEND;
+        json["event_type"] = APPEND;
         json["new_points"] = new_points;
     }
 
@@ -81,9 +83,12 @@ class Stroke : public CanvasObject {
     }
 
 #ifdef NOTEWORTHY_QT
-    Stroke(std::shared_ptr<QPainterPath> path) : path{path} {};
+    Stroke(QPainterPath &path, QGraphicsPathItem *path_item)
+        : path(path), path_item(path_item) {};
 
-    Stroke() {};
+    Stroke(QPainterPath &path) : path(path) {};
+
+    Stroke() { qDebug("Created empty stroke??? (a copy happened) (bad)"); };
 
     ~Stroke() // TODO: look into this
     {
@@ -91,27 +96,24 @@ class Stroke : public CanvasObject {
     }
 
     void updateQtPath() {
-        path->clear();
+        path.clear();
         std::vector<double> starting_vector = points.at(0);
         QPointF starting_point{starting_vector.at(0), starting_vector.at(1)};
-        path->moveTo(starting_point);
+        path.moveTo(starting_point);
 
         for (size_t i = 1; i < points.size(); i++) {
             QPointF next_point = {points.at(i).at(0), points.at(i).at(1)};
-            path->lineTo(next_point);
+            path.lineTo(next_point);
         }
     }
 
     void updateQtScene() {
-        path->clear();
-        std::vector<double> starting_vector = points.at(0);
-        QPointF starting_point{starting_vector.at(0), starting_vector.at(1)};
-        path->moveTo(starting_point);
-
-        for (size_t i = 1; i < points.size(); i++) {
-            QPointF next_point = {points.at(i).at(0), points.at(i).at(1)};
-            path->lineTo(next_point);
+        updateQtPath();
+        // it its a placeholder for a stroke in progress
+        if (path_item == nullptr) {
+            return;
         }
+        path_item->setPath(path);
     }
 #endif
 };

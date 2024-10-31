@@ -17,10 +17,10 @@
 
 class ServerState {
   public:
-    std::string createRoom(const std::string &owner,
+    std::string createRoom(const std::string room_id, const std::string &owner,
                            const std::string &room_password) {
         // Create a unique page ID
-        std::string new_room_id = "ABCDE";
+        std::string new_room_id = room_id;
         // do {
         //     new_room_id = ".....";
         //     for (int i = 0; i < 5; i++) {

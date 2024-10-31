@@ -96,27 +96,29 @@ int WebSocketHandler::callbackEcho(struct lws *connection,
     return 0;
 }
 
-std::unique_ptr<CanvasObject>
-createObject(CanvasObject::ObjectType object_type) {
+std::unique_ptr<CanvasObject> createCanvasObject(EventObjectType object_type) {
     switch (object_type) {
-    case CanvasObject::STROKE:
-        return std::make_unique<Stroke>();
-    case CanvasObject::SYMBOL:
-        std::cout << "Symbol creation not supported.";
+    case STROKE: {
+        // Create a Stroke using the current_path
+        auto stroke = std::make_unique<Stroke>();
+        return std::move(stroke);
+    }
+    case SYMBOL:
+        std::cout << "Symbol creation not supported." << std::endl;
         break;
-    case CanvasObject::SHAPE:
-        std::cout << "Shape creation not supported.";
+    case SHAPE:
+        std::cout << "Shape creation not supported." << std::endl;
         break;
-    case CanvasObject::TEXT:
-        std::cout << "Text creation not supported.";
+    case TEXT:
+        std::cout << "Text creation not supported." << std::endl;
         break;
-    case CanvasObject::BACKGROUND_IMAGE:
-        std::cout << "Background image creation not supported.";
+    case BACKGROUND_IMAGE:
+        std::cout << "Background image creation not supported." << std::endl;
         break;
     default:
         std::cout << "Unsupported object type!";
     }
-    assert(false); // Unsupported object
+    throw "unsupported object type!";
     return nullptr;
 }
 
@@ -125,50 +127,97 @@ void WebSocketHandler::handleEvent(UserConnection &user,
     std::cout << message << std::endl;
     nlohmann::json event = nlohmann::json::parse(message);
 
-    auto event_type = static_cast<CanvasObject::EventType>(event["event_type"]);
+    auto event_type = static_cast<EventType>(event["event_type"]);
     switch (event_type) {
-    case CanvasObject::CREATE: {
-        state.manipulateRoom(event["room_id"], [user, event](RoomState &room) {
-            room.manipulatePage(event["page_id"], [user,
-                                                   event](Page &page) mutable {
-                auto object_type =
-                    static_cast<CanvasObject::ObjectType>(event["object_type"]);
+    case CREATE: {
+        auto object_type = static_cast<EventObjectType>(event["object_type"]);
+        switch (object_type) {
 
-                std::unique_ptr<CanvasObject> object =
-                    createObject(object_type);
-                object->fromJson(event);
-                page.addObject(std::move(object));
+        case ROOM: {
+            // replace everything
+            throw "not implemented yet";
+            // state.fromJson(event);
+            break;
+        }
+        case PAGE: {
+            state.manipulateRoom(event["room_id"], [event](RoomState &room) {
+                room.applyInsertPageEvent(event);
             });
-        });
+            break;
+        }
+
+        case STROKE:
+        case SYMBOL:
+        case SHAPE:
+        case TEXT:
+        case BACKGROUND_IMAGE:
+            state.manipulateRoom(event["room_id"], [event, object_type](
+                                                       RoomState &room) {
+                room.manipulatePage(event["page_id"],
+                                    [event, object_type](Page &page) mutable {
+                                        std::unique_ptr<CanvasObject> object =
+                                            createCanvasObject(object_type);
+                                        object->fromJson(event);
+                                        page.addObject(std::move(object));
+                                    });
+            });
+            break;
+        default:
+            throw "invalid object type";
+        }
         break;
     }
-    case CanvasObject::DELETE: {
-        state.manipulateRoom(event["room_id"], [event](RoomState &room) {
-            room.manipulatePage(event["page_id"], [event](Page &page) {
-                page.deleteObject(event["object_id"]);
+    case DELETE: {
+        auto object_type = static_cast<EventObjectType>(event["object_type"]);
+        switch (object_type) {
+        case ROOM: {
+            throw "room deletion not implemented";
+            break;
+        }
+        case PAGE: {
+            state.manipulateRoom(event["room_id"], [event](RoomState &room) {
+                room.applyDeletePageEvent(event);
             });
-        });
-
+            break;
+        }
+        case STROKE:
+        case SYMBOL:
+        case SHAPE:
+        case TEXT:
+        case BACKGROUND_IMAGE: {
+            state.manipulateRoom(event["room_id"], [event](RoomState &room) {
+                uint64_t object_id = event["object_id"];
+                room.manipulatePage(event["page_id"], [object_id](Page &page) {
+                    page.deleteObject(object_id);
+                });
+            });
+            break;
+        }
+        default:
+            throw "invalid object type";
+        }
         break;
     }
-    case CanvasObject::MOVE:
-    case CanvasObject::SCALE:
-    case CanvasObject::ROTATE:
-    case CanvasObject::APPEND:
-    case CanvasObject::EDIT: {
+    case MOVE:
+    case SCALE:
+    case ROTATE:
+    case APPEND:
+    case EDIT: {
+        // assume its an object
         state.manipulateRoom(event["room_id"], [event](RoomState &room) {
-            room.manipulatePage(event["page_id"], [event](Page &page) {
-                page.manipulateObject(event["object_id"],
-                                      [event](CanvasObject &canvas_object) {
-                                          canvas_object.applyEvent(event);
-                                      });
-            });
+            uint64_t object_id = event["object_id"];
+            room.manipulatePage(
+                event["page_id"], [object_id, event](Page &page) {
+                    page.manipulateObject(object_id,
+                                          [event](CanvasObject &canvas_object) {
+                                              canvas_object.applyEvent(event);
+                                          });
+                });
         });
         break;
     }
     default: {
-        std::cout << "event type not recognized in websockethandler";
-        assert(false);
+        throw "event type not recognized in clientwebsockethandler";
         break;
     }
     }
@@ -178,6 +227,7 @@ void WebSocketHandler::handleEvent(UserConnection &user,
         if (other_user.second == user)
             continue;
         // TODO: make this work
+
         // if (other_user.second.room_id != event["room_id"]) {
         //     continue;
         // }

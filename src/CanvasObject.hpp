@@ -1,4 +1,5 @@
 #pragma once
+#include "EventTypeEnums.hpp"
 #include "nlohmann/json.hpp"
 
 class CanvasObject {
@@ -10,30 +11,7 @@ class CanvasObject {
 
     virtual ~CanvasObject() = default;
 
-    enum EventType {
-        CREATE,
-        DELETE,
-        MOVE,
-        SCALE,
-        ROTATE,
-        APPEND,
-        EDIT,
-    };
-
-    // I don't like this, you have to edit the parent class to add
-    // a child class, but I can't think of another way to do it
-    // without hard coding object type strings in code
-    // that depends on the type field
-    // so I think this the least worst solution
-    enum ObjectType {
-        STROKE,
-        SYMBOL,
-        SHAPE,
-        TEXT,
-        BACKGROUND_IMAGE,
-    };
-
-    virtual ObjectType getObjectType() = 0;
+    virtual EventObjectType getObjectType() = 0;
 
     virtual void toJson(nlohmann::json &json) = 0;
     virtual void fromJson(const nlohmann::json &json) = 0;
@@ -55,22 +33,23 @@ class CanvasObject {
 
     // function that gets called after a change gets applied
     // only needs to be implemented for qt side
-    virtual void updateQtScene() {};
-
+#ifdef NOTEWORTHY_QT
+    virtual void updateQtScene() = 0;
+#endif
     void createCreateEvent(nlohmann::json &json) {
         toJson(json);
-        json["event_type"] = CREATE;
+        json["event_type"] = EventType::CREATE;
     }
 
     void createDeleteEvent(nlohmann::json &json) {
         addMetaInformation(json);
-        json["event_type"] = DELETE;
+        json["event_type"] = EventType::DELETE;
     }
 
     void createMoveEvent(nlohmann::json &json, double distance_x,
                          double distance_y) {
         addMetaInformation(json);
-        json["event_type"] = MOVE;
+        json["event_type"] = EventType::MOVE;
         json["distance_x"] = distance_x;
         json["distance_y"] = distance_y;
     }
@@ -82,7 +61,7 @@ class CanvasObject {
                           double scale_center_y, double scale_factor_x,
                           double scale_factor_y) {
         addMetaInformation(json);
-        json["event_type"] = SCALE;
+        json["event_type"] = EventType::SCALE;
         json["scale_center_x"] = scale_center_x;
         json["scale_center_y"] = scale_center_y;
         json["scale_factor_x"] = scale_factor_x;
@@ -96,7 +75,7 @@ class CanvasObject {
     void createRotateEvent(nlohmann::json &json, double rotation_center_x,
                            double rotation_center_y, double rotation_degrees) {
         addMetaInformation(json);
-        json["event_type"] = ROTATE;
+        json["event_type"] = EventType::ROTATE;
         json["rotation_center_x"] = rotation_center_x;
         json["rotation_center_y"] = rotation_center_y;
         json["rotation_degrees"] = rotation_degrees;
@@ -107,22 +86,10 @@ class CanvasObject {
         throw std::logic_error("Applying rotate not implemented.");
     }
 
-  protected:
-    virtual void onCreateAppendEvent(nlohmann::json &json) {
-        throw std::logic_error("Creating append not implemented.");
-    }
-
-  public:
     virtual void applyAppendEvent(const nlohmann::json &change) {
         throw std::logic_error("Applying append not implemented.");
     }
 
-  protected:
-    virtual void onCreateEditEvent(nlohmann::json &json) {
-        throw std::logic_error("Creating edit not implemented.");
-    }
-
-  public:
     virtual void applyEditEvent(const nlohmann::json &change) {
         throw std::logic_error("Applying edit not implemented.");
     }
@@ -130,13 +97,13 @@ class CanvasObject {
     void applyEvent(const nlohmann::json &json) {
         int event_type = json["event_type"];
         switch (event_type) {
-        case MOVE: {
+        case EventType::MOVE: {
             double distance_x = json["distance_x"];
             double distance_y = json["distance_y"];
             applyMoveEvent(distance_x, distance_y);
             break;
         }
-        case SCALE: {
+        case EventType::SCALE: {
             double scale_center_x = json["scale_center_x"];
             double scale_center_y = json["scale_center_y"];
             double scale_factor_x = json["scale_factor_x"];
@@ -145,7 +112,7 @@ class CanvasObject {
                             scale_factor_y);
             break;
         }
-        case ROTATE: {
+        case EventType::ROTATE: {
             double rotation_center_x = json["rotation_center_x"];
             double rotation_center_y = json["rotation_center_y"];
             double rotation_degrees = json["rotation_degrees"];
@@ -153,11 +120,11 @@ class CanvasObject {
                              rotation_degrees);
             break;
         }
-        case APPEND: {
+        case EventType::APPEND: {
             applyAppendEvent(json);
             break;
         }
-        case EDIT: {
+        case EventType::EDIT: {
             applyEditEvent(json);
             break;
         }
@@ -165,6 +132,8 @@ class CanvasObject {
             throw std::range_error("invalid canvas object");
         }
         }
+#ifdef NOTEWORTHY_QT
         updateQtScene();
+#endif
     };
 };

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CanvasObject.hpp"
-#include "RandomIdGenerator.hpp"
 #include <cstdint>
 #include <list>
 #include <map>
@@ -17,7 +16,7 @@ class Page {
   public:
     uint64_t page_id;
 #ifdef NOTEWORTHY_QT
-    std::shared_ptr<QGraphicsScene> scene;
+    std::shared_ptr<QGraphicsScene> scene = std::make_shared<QGraphicsScene>();
 #endif
 
     std::unique_ptr<CanvasObject> deleteObject(uint64_t id) {
@@ -39,6 +38,13 @@ class Page {
         manipulator(*object_map[id]);
     }
 
+    void forEach(const std::function<void(CanvasObject &)> &manipulator) {
+        std::lock_guard<std::mutex> lock(page_mutex);
+        for (auto &[id, object] : object_map) {
+            manipulator(*object);
+        }
+    }
+
   private:
     std::mutex page_mutex;
     nlohmann::ordered_map<uint64_t, std::unique_ptr<CanvasObject>> object_map;
@@ -48,11 +54,37 @@ class RoomState {
   public:
     std::string room_id;
     std::string owner_id;
+    std::string password;
+
+    RoomState(std::string room_id, std::string owner_id, std::string password)
+        : room_id(room_id), owner_id(owner_id), password(password) {};
 
     void toJson(nlohmann::json &json) {
         json["owner_id"] = owner_id;
         json["room_id"] = room_id;
         json["object_type"] = ROOM;
+    }
+
+    void toJsonEventList(nlohmann::json &json) {
+
+        // std::lock_guard<std::mutex> lock(room_mutex);
+        // first do a create room event
+        nlohmann::json home_json;
+        createCreateRoomEvent(home_json);
+        json.push_back(home_json);
+        // then add create page event each page and add all the objects of that
+        // page add last page first, adding the next pages at position 0 so they
+        // are in order
+        forEachReverse([this, &json](Page &page) mutable {
+            nlohmann::json create_page_json;
+            createInsertPageEvent(create_page_json, 0, page.page_id);
+            json.push_back(create_page_json);
+            page.forEach([this, &json](CanvasObject &object) mutable {
+                nlohmann::json create_canvas_object_json;
+                object.createCreateEvent(create_canvas_object_json);
+                json.push_back(create_canvas_object_json);
+            });
+        });
     }
 
     void fromJson(const nlohmann::json &json) {
@@ -127,6 +159,12 @@ class RoomState {
         auto it = page_map.find(id);
         assert(it != page_map.end());
         manipulator(*it->second); // Pass to manipulator by reference
+    }
+
+    void forEachReverse(const std::function<void(Page &)> &manipulator) {
+        for (auto it = page_order.rbegin(); it != page_order.rend(); it++) {
+            manipulatePage(*it, manipulator);
+        }
     }
 
     bool getNextPageId(uint64_t page_id, uint64_t &next_page_id) {

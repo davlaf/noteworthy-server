@@ -31,7 +31,7 @@ class ServerState {
         // } while (room_map.count(new_room_id) > 0);
 
         // Create a page using smart pointer
-        auto room = std::make_unique<RoomState>();
+        auto room = std::make_unique<RoomState>(room_id, owner, room_password);
 
         // TODO: we need to set the owners and password and stuff
         // room.get()->
@@ -51,7 +51,9 @@ class ServerState {
                         const std::function<void(RoomState &)> &manipulator) {
         std::lock_guard<std::mutex> lock(room_map_mutex);
         auto it = room_map.find(id);
-        assert(it != room_map.end());
+        if (it == room_map.end()) {
+            throw std::range_error("room not found");
+        }
         manipulator(*it->second); // Pass to manipulator by reference
     }
 

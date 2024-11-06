@@ -1,8 +1,10 @@
-cmake_minimum_required (VERSION 3.2)
+cmake_minimum_required (VERSION 3.8)
 
 project(api-server)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pg -g3" )
+set(CXX_STANDARD "C++17")
+set(CXX_STANDARD_REQUIRED "C++17")
 
 include(ExternalProject)
 

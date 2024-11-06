@@ -43,7 +43,7 @@ int startServer() {
 int main() {
 
     // room code ABCDE
-    std::string room_id = state.createRoom("ABCDE", "joe", "password");
+    std::string room_id = state.createRoom("ABCDE", "joe", "ggggghh");
     state.manipulateRoom(room_id, [](RoomState &room) {
         auto new_page = std::make_unique<Page>();
         new_page->page_id = 12345;

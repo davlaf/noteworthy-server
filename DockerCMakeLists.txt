@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.8)
+project(api-server)
+
+# Standard settings
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pg -g3")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Directly include paths for pre-built libraries
+include_directories(/usr/local/include)
+link_directories(/usr/local/lib)
+
+# Add source files
+file(GLOB SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+)
+
+# Build the executable and link against prebuilt libraries
+add_executable(${PROJECT_NAME} ${SRCS})
+target_link_libraries(${PROJECT_NAME} websockets pistache pthread)

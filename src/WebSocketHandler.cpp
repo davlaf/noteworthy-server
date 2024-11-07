@@ -77,8 +77,13 @@ int WebSocketHandler::callbackEcho(struct lws *connection,
 
         UserConnection &user = ws_connections[connection];
         std::string event = std::string((const char *)in).substr(0, len);
-
-        handleEvent(user, event);
+        try {
+            handleEvent(user, event);
+        } catch (std::string e) {
+            std::cout << "david error in handling event:" << e << std::endl;
+        } catch (std::exception e) {
+            std::cout << "error in handling event:" << e.what() << std::endl;
+        }
 
         break;
     }

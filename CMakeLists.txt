@@ -37,15 +37,9 @@ ExternalProject_Add(LIBWEBSOCKETS
 include_directories(${EXTERNAL_INSTALL_LOCATION}/include)
 link_directories(${EXTERNAL_INSTALL_LOCATION}/lib)
 
-include_directories(openapi/model)
-include_directories(openapi/api)
-include_directories(openapi/impl)
 include_directories(src)
 
 file(GLOB SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/openapi/api/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/openapi/impl/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/openapi/model/*.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
 )
 

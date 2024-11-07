@@ -44,17 +44,18 @@ int main() {
 
     // room code ABCDE
     std::string room_id = state.createRoom("ABCDE", "joe", "ggggghh");
-    state.manipulateRoom(room_id, [](RoomState &room) {
-        auto new_page = std::make_unique<Page>();
-        new_page->page_id = 12345;
-        room.addPageAfter(0, std::move(new_page));
-        auto new_page2 = std::make_unique<Page>();
-        new_page2->page_id = 23456;
-        room.addPageAfter(12345, std::move(new_page2));
-        // room.manipulatePage(page_id, [](Page &page) {
-        //     page.addObject(IDGenerator::newID(), Stroke());
-        // });
-    });
+    std::string room_id2 = state.createRoom("12345", "david", "");
+    // state.manipulateRoom(room_id, [](RoomState &room) {
+    //     auto new_page = std::make_unique<Page>();
+    //     new_page->page_id = 12345;
+    //     room.addPageAfter(0, std::move(new_page));
+    //     auto new_page2 = std::make_unique<Page>();
+    //     new_page2->page_id = 23456;
+    //     room.addPageAfter(12345, std::move(new_page2));
+    //     // room.manipulatePage(page_id, [](Page &page) {
+    //     //     page.addObject(IDGenerator::newID(), Stroke());
+    //     // });
+    // });
 
     // std::string room_id = state.createRoom("12345", "bob", "password");
     // state.manipulateRoom(room_id, [](RoomState &room) {

@@ -14,13 +14,38 @@ class RoomHandler {
     explicit RoomHandler() {}
 
     void setupRoutes(Rest::Router &router) {
-        Rest::Routes::Get(router, "/rooms/:room_id",
+        Rest::Routes::Options(
+            router, "/v1/rooms/:id",
+            Rest::Routes::bind(&RoomHandler::handleOptionsRequest, this));
+        Rest::Routes::Get(router, "/v1/rooms/:room_id",
                           Rest::Routes::bind(&RoomHandler::getRoom, this));
+        router.addCustomHandler(
+            Rest::Routes::bind(&RoomHandler::handleNotFound, this));
     }
 
   private:
+    void handleNotFound(const Rest::Request &request,
+                        Http::ResponseWriter response) {
+        std::cout << "handling fake request for route:" << std::endl;
+        std::cout << request.method() << ": " << request.resource()
+                  << std::endl;
+        response.send(Http::Code::Not_Found, "invalid route!!");
+    }
+    void handleOptionsRequest(const Rest::Request &request,
+                              Http::ResponseWriter response) {
+        response.headers()
+            .add<Http::Header::AccessControlAllowOrigin>(
+                "*") // or specify the origin: "http://localhost:30000"
+            .add<Http::Header::AccessControlAllowMethods>("GET, OPTIONS")
+            .add<Http::Header::AccessControlAllowHeaders>(
+                "Authorization, Content-Type, Accept-Language");
+        response.send(Http::Code::Ok, "epic");
+    }
+
     void getRoom(const Rest::Request &request, Http::ResponseWriter response) {
+        response.headers().add<Http::Header::AccessControlAllowOrigin>("*");
         auto room_id = request.param(":room_id").as<std::string>();
+        std::cout << "handling request for room id " << room_id << std::endl;
 
         auto authHeader =
             request.headers().tryGet<Http::Header::Authorization>();
@@ -44,8 +69,6 @@ class RoomHandler {
 
         const std::function<void(RoomState &)> &manipulator =
             [&response, &receivedToken, &authHeader](RoomState &room) {
-                // int epic = 5;
-
                 bool room_has_password = room.password != "";
 
                 if (!authHeader && room_has_password) {
@@ -62,6 +85,8 @@ class RoomHandler {
                     return;
                 }
 
+                response.headers().add<Http::Header::AccessControlAllowOrigin>(
+                    "*");
                 nlohmann::json event_list_json;
                 room.toJsonEventList(event_list_json);
                 response.setMime(MIME(Application, Json));

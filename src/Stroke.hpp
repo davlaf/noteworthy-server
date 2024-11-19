@@ -16,7 +16,6 @@ class Stroke : public CanvasObject {
 #ifdef NOTEWORTHY_QT
   public:
     QPainterPath path;
-    QGraphicsPathItem *path_item;
 #endif
 
   public:
@@ -30,6 +29,9 @@ class Stroke : public CanvasObject {
     virtual void fromJson(const nlohmann::json &json) {
         retrieveMetaInformation(json);
         json.at("points").get_to(points);
+#ifdef NOTEWORTHY_QT
+        updateQtScene();
+#endif
     }
 
     virtual void applyMoveEvent(double distance_x, double distance_y) {
@@ -83,8 +85,9 @@ class Stroke : public CanvasObject {
     }
 
 #ifdef NOTEWORTHY_QT
-    Stroke(QPainterPath &path, QGraphicsPathItem *path_item)
-        : path(path), path_item(path_item) {};
+    Stroke(QPainterPath &path, QGraphicsPathItem *path_item) : path(path) {
+        item = path_item;
+    };
 
     Stroke(QPainterPath &path) : path(path) {};
 
@@ -97,6 +100,9 @@ class Stroke : public CanvasObject {
 
     void updateQtPath() {
         path.clear();
+        if (points.size() == 0) {
+            return;
+        }
         std::vector<double> starting_vector = points.at(0);
         QPointF starting_point{starting_vector.at(0), starting_vector.at(1)};
         path.moveTo(starting_point);
@@ -110,10 +116,10 @@ class Stroke : public CanvasObject {
     void updateQtScene() {
         updateQtPath();
         // it its a placeholder for a stroke in progress
-        if (path_item == nullptr) {
+        if (item == nullptr) {
             return;
         }
-        path_item->setPath(path);
+        static_cast<QGraphicsPathItem *>(item)->setPath(path);
     }
 #endif
 };

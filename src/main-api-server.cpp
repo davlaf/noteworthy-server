@@ -1,5 +1,8 @@
 #include "ServerState.hpp"
+#include "UserConnection.hpp"
+#include "UserRoles.hpp"
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <pistache/endpoint.h>
 #include <pistache/http.h>
 #include <pistache/http_headers.h>
@@ -19,10 +22,17 @@ class RoomHandler {
             Rest::Routes::bind(&RoomHandler::handleOptionsRequest, this));
         Rest::Routes::Get(router, "/v1/rooms/:room_id",
                           Rest::Routes::bind(&RoomHandler::getRoom, this));
+        Rest::Routes::Post(router, "/v1/rooms/:room_id/users",
+                           Rest::Routes::bind(&RoomHandler::createUser, this));
+        Rest::Routes::Get(router, "/v1/rooms/:room_id/users",
+                          Rest::Routes::bind(&RoomHandler::listUsers, this));
+
+        // Default handler for invalid routes
         router.addCustomHandler(
             Rest::Routes::bind(&RoomHandler::handleNotFound, this));
     }
 
+  private:
   private:
     void handleNotFound(const Rest::Request &request,
                         Http::ResponseWriter response) {
@@ -99,8 +109,55 @@ class RoomHandler {
             return;
         }
     }
+    // Create a new user in the specified room
+    void createUser(const Rest::Request &request,
+                    Http::ResponseWriter response) {
+        std::cout << "handling user add route" << std::endl;
+        auto room_id = request.param(":room_id").as<std::string>();
+        auto username_query = request.query().get("username").value_or("");
+
+        if (username_query.empty()) {
+            response.send(Http::Code::Bad_Request,
+                          "Username parameter is required");
+            return;
+        }
+
+        std::string username = username_query;
+        auto role = UserRole::MEMBER; // Default role for new users
+
+        // Manipulate the room state to add a new user if the username is unique
+        state.manipulateRoom(room_id, [username, role,
+                                       &response](RoomState &room) {
+            if (room.isUserInRoom(username)) {
+                response.send(Http::Code::Conflict,
+                              "Username already exists in the room");
+                return;
+            }
+
+            // Create the new user connection
+            UserConnection newUser = {room.room_id, username, nullptr, role};
+            room.addUser(newUser);
+
+            // Return success response
+            response.send(Http::Code::Created, "User created successfully");
+        });
+    }
+
+    // List all users in the specified room
+    void listUsers(const Rest::Request &request,
+                   Http::ResponseWriter response) {
+        auto room_id = request.param(":room_id").as<std::string>();
+
+        state.manipulateRoom(room_id, [&response](RoomState &room) {
+            auto users = room.listUsers();
+            nlohmann::json userListJson = users;
+            response.setMime(MIME(Application, Json));
+            response.send(Http::Code::Ok, userListJson.dump());
+        });
+    }
 };
 
+// Main function to start the server
 void startServer(int port) {
 
     Http::Endpoint server(Address(Ipv4::any(), Port(port)));

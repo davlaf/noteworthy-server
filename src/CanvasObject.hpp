@@ -2,12 +2,19 @@
 #include "EventTypeEnums.hpp"
 #include "nlohmann/json.hpp"
 
+#ifdef NOTEWORTHY_QT
+#include <qgraphicsitem.h>
+#endif
+
 class CanvasObject {
   public:
     std::string owner_id;
     std::string room_id;
     uint64_t page_id;
     uint64_t object_id;
+#ifdef NOTEWORTHY_QT
+    QGraphicsItem *item;
+#endif
 
     virtual ~CanvasObject() = default;
 

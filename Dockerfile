@@ -2,14 +2,14 @@
 FROM ubuntu:latest
 
 RUN apt-get -y update && \
-    apt-get install -y cmake g++ libcurl4-openssl-dev pkg-config \
+    apt-get install -y cmake git g++ libcurl4-openssl-dev pkg-config \
     build-essential \
-    libpistache-dev \
     libwebsockets-dev \
     nlohmann-json3-dev \
     libmupdf-dev \
     liblcms2-dev \
     libfreetype6-dev \
+    meson \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the source code

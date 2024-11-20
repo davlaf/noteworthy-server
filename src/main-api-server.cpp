@@ -33,13 +33,20 @@ class RoomHandler {
     }
 
   private:
-  private:
     void handleNotFound(const Rest::Request &request,
                         Http::ResponseWriter response) {
         std::cout << "handling fake request for route:" << std::endl;
-        std::cout << request.method() << ": " << request.resource()
-                  << std::endl;
-        response.send(Http::Code::Not_Found, "invalid route!!");
+
+        auto method = request.method();
+        auto resource = request.resource();
+
+        if (resource.empty()) {
+            response.send(Http::Code::Bad_Request, "Invalid resource");
+            return;
+        }
+
+        std::cout << method << ": " << resource << std::endl;
+        response.send(Http::Code::Not_Found, "Invalid route!!");
     }
     void handleOptionsRequest(const Rest::Request &request,
                               Http::ResponseWriter response) {

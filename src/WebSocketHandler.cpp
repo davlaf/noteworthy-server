@@ -6,6 +6,7 @@
 #include "UserConnection.hpp"
 #include "nlohmann/json.hpp"
 #include <iostream>
+#include <libwebsockets.h>
 
 using json = nlohmann::json; // Define a shorthand for the json type
 
@@ -55,36 +56,67 @@ void WebSocketHandler::removeConnection(struct lws *connection) {
     ws_connections.erase(connection);
 }
 
-// TODO: look into using the user argument
 int WebSocketHandler::callbackEcho(struct lws *connection,
                                    enum lws_callback_reasons reason, void *user,
                                    void *in, size_t len) {
     switch (reason) {
-    case LWS_CALLBACK_ESTABLISHED:
+    case LWS_CALLBACK_ESTABLISHED: {
         std::cout << "Client connected!" << std::endl;
 
-        ws_connections[connection] = {
-            .room_id = "test_id",
-            .username = "test_username",
-            .socket = connection,
-        };
-        break;
+        char raw_room_id[64] = {0};
+        char raw_user_id[128] = {0};
+        char decoded_room_id[64] = {0};
+        char decoded_user_id[128] = {0};
 
-    case LWS_CALLBACK_RECEIVE: {
-
-        // std::cout << "Received message: " << (const char *)in
-        //           << " (length: " << len << ")" << std::endl;
-
-        UserConnection &user = ws_connections[connection];
-        std::string event = std::string((const char *)in).substr(0, len);
-        try {
-            handleEvent(user, event);
-        } catch (std::string e) {
-            std::cout << "david error in handling event:" << e << std::endl;
-        } catch (std::exception e) {
-            std::cout << "error in handling event:" << e.what() << std::endl;
+        // Extract room_id
+        if (lws_get_urlarg_by_name(connection, "room_id=", raw_room_id,
+                                   sizeof(raw_room_id))) {
+            // Decode room_id
+            int decode_len = lws_urldecode(raw_room_id, decoded_room_id,
+                                           sizeof(decoded_room_id));
+            if (decode_len >= 0) { // Check for successful decoding
+                std::cout << "Decoded Room ID: " << decoded_room_id
+                          << std::endl;
+            } else {
+                std::cerr << "Failed to decode room_id!" << std::endl;
+                std::memset(decoded_room_id, 0, sizeof(decoded_room_id));
+            }
+        } else {
+            std::cerr << "Failed to extract room_id!" << std::endl;
         }
 
+        // Extract user_id
+        if (lws_get_urlarg_by_name(connection, "user_id=", raw_user_id,
+                                   sizeof(raw_user_id))) {
+            // Decode user_id
+            int decode_len = lws_urldecode(raw_user_id, decoded_user_id,
+                                           sizeof(decoded_user_id));
+            if (decode_len >= 0) { // Check for successful decoding
+                std::cout << "Decoded User ID: " << decoded_user_id
+                          << std::endl;
+            } else {
+                std::cerr << "Failed to decode user_id!" << std::endl;
+                std::memset(decoded_user_id, 0, sizeof(decoded_user_id));
+            }
+        } else {
+            std::cerr << "Failed to extract user_id!" << std::endl;
+        }
+
+        // Store connection data
+        ws_connections[connection] = {std::string(decoded_room_id),
+                                      std::string(decoded_user_id), connection,
+                                      UserRole::MEMBER};
+        break;
+    }
+    case LWS_CALLBACK_RECEIVE: {
+        std::string message((const char *)in, len);
+        UserConnection &user = ws_connections[connection];
+
+        try {
+            handleEvent(user, message);
+        } catch (const std::exception &e) {
+            std::cerr << "Error handling event: " << e.what() << std::endl;
+        }
         break;
     }
 
@@ -96,8 +128,6 @@ int WebSocketHandler::callbackEcho(struct lws *connection,
     default:
         break;
     }
-
-    // For debugging purposes
     return 0;
 }
 

@@ -12,4 +12,7 @@ if [[ "$CURRENT_DIR" != "$(dirname "$SCRIPT_DIR")" ]]; then
     exit 1
 fi
 
+sudo fuser -k 8080/tcp
+sudo fuser -k 8081/tcp
+
 ./build/api-server

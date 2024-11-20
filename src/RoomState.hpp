@@ -82,12 +82,9 @@ class RoomState {
     }
 
     void fromJson(const nlohmann::json &json) {
-        if (json.contains("owner_id"))
-            json.at("owner_id").get_to(owner_id);
-        if (json.contains("room_id"))
-            json.at("room_id").get_to(room_id);
-        if (json.contains("password"))
-            json.at("password").get_to(password);
+        json.at("owner_id").get_to(owner_id);
+        json.at("room_id").get_to(room_id);
+        json.at("password").get_to(password);
     }
 
     void toJsonEventList(nlohmann::json &json) {
@@ -110,11 +107,6 @@ class RoomState {
                 json.push_back(create_canvas_object_json);
             });
         });
-    }
-
-    void fromJson(const nlohmann::json &json) {
-        json.at("owner_id").get_to(owner_id);
-        json.at("room_id").get_to(room_id);
     }
 
     void createCreateRoomEvent(nlohmann::json &json) {
@@ -260,7 +252,7 @@ class RoomState {
     }
 
     // Method to list users in a room
-    std::vector<nlohmann::json> listUsers() const {
+    std::vector<nlohmann::json> listUsers() {
         std::lock_guard<std::mutex> lock(room_mutex);
         std::vector<nlohmann::json> user_list;
 
@@ -279,6 +271,7 @@ class RoomState {
     std::map<uint64_t, std::unique_ptr<Page>>
         page_map; // Use unique_ptr for automatic memory management
     std::list<uint64_t> page_order;
+    std::map<std::string, UserConnection> users; // User management map
 };
 
 #ifdef NOTEWORTHY_QT

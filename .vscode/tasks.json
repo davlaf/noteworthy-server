@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Kill api-server process",
+            "type": "shell",
+            "command": "sudo fuser -k 8080/tcp && sudo fuser -k 8081/tcp",
+            "problemMatcher": []
+        }
+    ]
+}

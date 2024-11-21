@@ -1,29 +1,30 @@
 #include "WebSocketHandler.hpp"
 
 #include "CanvasObject.hpp"
+#include "SendableObject.hpp"
 #include "ServerState.hpp"
 #include "Stroke.hpp"
-#include "UserConnection.hpp"
+#include "User.hpp"
 #include "nlohmann/json.hpp"
 #include <iostream>
 #include <libwebsockets.h>
 
 using json = nlohmann::json; // Define a shorthand for the json type
 
-std::map<struct lws *, struct UserConnection> WebSocketHandler::ws_connections;
-
-int WebSocketHandler::startServer(int port) {
-    lws_set_log_level(0, NULL);
+int WebSocketHandler::startServer(int port)
+{
+    // lws_set_log_level(0, NULL);
+    lws_set_log_level(0b11111111111, NULL);
 
     struct lws_context_creation_info context_info;
     memset(&context_info, 0, sizeof(context_info));
 
     // Define the protocols
     static struct lws_protocols protocols[] = {
-        {"http", lws_callback_http_dummy, 0, 0},
+        { "http", lws_callback_http_dummy, 0, 0 },
         // max message size of 10kb
-        {"echo-protocol", callbackEcho, 0, 10000},
-        {NULL, NULL, 0, 0} // terminator
+        { "echo-protocol", callbackEcho, sizeof(User*), 10000 },
+        { NULL, NULL, 0, 0 } // terminator
     };
 
     // Setup context information
@@ -32,15 +33,14 @@ int WebSocketHandler::startServer(int port) {
 
     // Create context
 
-    lws_context *context = lws_create_context(&context_info);
+    lws_context* context = lws_create_context(&context_info);
 
     if (!context) {
         std::cerr << "Failed to create websocket context!" << std::endl;
         return -1;
     }
 
-    std::cout << "WebSocket server started on port " << context_info.port
-              << std::endl;
+    std::cout << "WebSocket server started on port " << context_info.port << std::endl;
 
     // Event loop
     while (lws_service(context, 1000) >= 0) {
@@ -52,86 +52,134 @@ int WebSocketHandler::startServer(int port) {
     return 0;
 }
 
-void WebSocketHandler::removeConnection(struct lws *connection) {
-    ws_connections.erase(connection);
+std::string extract_query_parameter(struct lws* connection, const std::string& query_param)
+{
+    char url_encoded_string[128] = { 0 };
+    char url_decoded_string[128] = { 0 };
+
+    if (!lws_get_urlarg_by_name(connection, query_param.c_str(), url_encoded_string, sizeof(url_encoded_string))) {
+        throw std::runtime_error("failed to extract " + query_param);
+    }
+
+    int decode_err = lws_urldecode(url_decoded_string, url_encoded_string, sizeof(url_decoded_string));
+
+    if (decode_err < 0) { // Check for successful decoding
+        throw std::runtime_error("failed to extract " + query_param);
+    }
+
+    // The value after the '=' in a query parameter (e.g., username=david) needs to be extracted
+    std::string decoded_str(url_decoded_string);
+
+    // Find the position of the '=' character in the decoded string (e.g., username=david)
+    size_t pos = decoded_str.find('=');
+    if (pos != std::string::npos) {
+        // Return the substring after the '=' (the actual value, e.g., "david")
+        return decoded_str.substr(pos + 1);
+    }
+
+    return decoded_str;
 }
 
-int WebSocketHandler::callbackEcho(struct lws *connection,
-                                   enum lws_callback_reasons reason, void *user,
-                                   void *in, size_t len) {
+int WebSocketHandler::callbackEcho(struct lws* connection, enum lws_callback_reasons reason, void* user, void* in,
+    size_t len)
+{
+    auto user_ptr_ptr = static_cast<User**>(user);
     switch (reason) {
     case LWS_CALLBACK_ESTABLISHED: {
         std::cout << "Client connected!" << std::endl;
 
-        char raw_room_id[64] = {0};
-        char raw_user_id[128] = {0};
-        char decoded_room_id[64] = {0};
-        char decoded_user_id[128] = {0};
+        // create temporary shitass user
+        User* user = new User { "", "" };
+        *user_ptr_ptr = user;
 
-        // Extract room_id
-        if (lws_get_urlarg_by_name(connection, "room_id=", raw_room_id,
-                                   sizeof(raw_room_id))) {
-            // Decode room_id
-            int decode_len = lws_urldecode(raw_room_id, decoded_room_id,
-                                           sizeof(decoded_room_id));
-            if (decode_len >= 0) { // Check for successful decoding
-                std::cout << "Decoded Room ID: " << decoded_room_id
-                          << std::endl;
-            } else {
-                std::cerr << "Failed to decode room_id!" << std::endl;
-                std::memset(decoded_room_id, 0, sizeof(decoded_room_id));
-            }
-        } else {
-            std::cerr << "Failed to extract room_id!" << std::endl;
+        std::string username;
+        std::string room_id;
+
+        try {
+            username = extract_query_parameter(connection, "username=");
+            room_id = extract_query_parameter(connection, "room_id=");
+        } catch (std::runtime_error e) {
+            delete *user_ptr_ptr;
+            std::cout << "error: " << e.what() << std::endl;
+            const char* msg = e.what();
+            lws_close_reason(connection, LWS_CLOSE_STATUS_NORMAL, (unsigned char*)msg, strlen(msg));
+            return -1;
         }
 
-        // Extract user_id
-        if (lws_get_urlarg_by_name(connection, "user_id=", raw_user_id,
-                                   sizeof(raw_user_id))) {
-            // Decode user_id
-            int decode_len = lws_urldecode(raw_user_id, decoded_user_id,
-                                           sizeof(decoded_user_id));
-            if (decode_len >= 0) { // Check for successful decoding
-                std::cout << "Decoded User ID: " << decoded_user_id
-                          << std::endl;
-            } else {
-                std::cerr << "Failed to decode user_id!" << std::endl;
-                std::memset(decoded_user_id, 0, sizeof(decoded_user_id));
-            }
-        } else {
-            std::cerr << "Failed to extract user_id!" << std::endl;
+        // check the room exists
+        if (!state.hasRoom(room_id)) {
+            delete *user_ptr_ptr;
+            const char* msg = "room doesn't exist";
+            lws_close_reason(connection, LWS_CLOSE_STATUS_NORMAL, (unsigned char*)msg, strlen(msg));
+            return -1;
         }
 
-        // Store connection data
-        ws_connections[connection] = {std::string(decoded_room_id),
-                                      std::string(decoded_user_id), connection,
-                                      UserRole::MEMBER};
+        bool is_user_connected_to_room = false;
+        bool is_user_in_room = false;
+        state.manipulateRoom(room_id, [&username, &is_user_connected_to_room, &is_user_in_room](RoomState& room) {
+            is_user_connected_to_room = room.isUserConnectedToRoom(username);
+            is_user_in_room = room.isUserInRoom(username);
+        });
+
+        if (!is_user_in_room) {
+            delete *user_ptr_ptr;
+            const char* msg = "user not in room";
+            lws_close_reason(connection, LWS_CLOSE_STATUS_NORMAL, (unsigned char*)msg, strlen(msg));
+            return -1;
+        }
+
+        if (is_user_connected_to_room) {
+            delete *user_ptr_ptr;
+            const char* msg = "user already connected";
+            lws_close_reason(connection, LWS_CLOSE_STATUS_NORMAL, (unsigned char*)msg, strlen(msg));
+            return -1;
+        }
+
+        state.manipulateRoom(room_id, [username, connection, user_ptr_ptr](RoomState& room) {
+            room.manipulateUser(username, [connection, user_ptr_ptr](User& room_user) {
+                room_user.socket = connection;
+                room_user.is_connected = true;
+            });
+            // Store connection data
+            delete *user_ptr_ptr;
+            *user_ptr_ptr = room.getUserPtr(username);
+        });
+
         break;
     }
     case LWS_CALLBACK_RECEIVE: {
-        std::string message((const char *)in, len);
-        UserConnection &user = ws_connections[connection];
+        std::string message((const char*)in, len);
+        User& user = **user_ptr_ptr;
 
         try {
             handleEvent(user, message);
-        } catch (const std::exception &e) {
+        } catch (const std::exception& e) {
             std::cerr << "Error handling event: " << e.what() << std::endl;
+        } catch (std::string s) {
+            std::cerr << "Error handling event" << s << std::endl;
         }
         break;
     }
-
-    case LWS_CALLBACK_CLOSED:
+    case LWS_CALLBACK_CLOSED: {
         std::cout << "Client disconnected!" << std::endl;
-        removeConnection(connection);
-        break;
+        User& user = **user_ptr_ptr;
+        // if it was temporary user
+        if (user.room_id == "") {
+            delete *user_ptr_ptr;
+        }
 
+        user.is_connected = false;
+
+        break;
+    }
     default:
         break;
     }
     return 0;
 }
 
-std::unique_ptr<CanvasObject> createCanvasObject(EventObjectType object_type) {
+std::unique_ptr<CanvasObject> createCanvasObject(EventObjectType object_type)
+{
     switch (object_type) {
     case STROKE: {
         // Create a Stroke using the current_path
@@ -147,9 +195,6 @@ std::unique_ptr<CanvasObject> createCanvasObject(EventObjectType object_type) {
     case TEXT:
         std::cout << "Text creation not supported." << std::endl;
         break;
-    case BACKGROUND_IMAGE:
-        std::cout << "Background image creation not supported." << std::endl;
-        break;
     default:
         std::cout << "Unsupported object type!";
     }
@@ -157,116 +202,100 @@ std::unique_ptr<CanvasObject> createCanvasObject(EventObjectType object_type) {
     return nullptr;
 }
 
-void WebSocketHandler::handleEvent(UserConnection &user,
-                                   const std::string &message) {
+void WebSocketHandler::handleEvent(User& user, const std::string& message)
+{
     std::cout << message << std::endl;
     nlohmann::json event = nlohmann::json::parse(message);
 
-    auto event_type = static_cast<EventType>(event["event_type"]);
-    switch (event_type) {
-    case CREATE: {
-        auto object_type = static_cast<EventObjectType>(event["object_type"]);
-        switch (object_type) {
+    auto object_type = static_cast<EventObjectType>(event["object_type"]);
+    switch (object_type) {
+    case ROOM: {
+        auto event_type = static_cast<EventType>(event["event_type"]);
 
-        case ROOM: {
-            // replace everything
-            throw "not implemented yet";
-            // state.fromJson(event);
-            break;
-        }
-        case PAGE: {
-            state.manipulateRoom(event["room_id"], [event](RoomState &room) {
+        throw std::logic_error("room creation and deletion is http only");
+        break;
+    }
+    case PAGE: {
+        auto event_type = static_cast<EventType>(event["event_type"]);
+        switch (event_type) {
+        case CREATE:
+            state.manipulateRoom(event["room_id"], [event](RoomState& room) {
                 room.applyInsertPageEvent(event);
             });
             break;
-        }
-
-        case STROKE:
-        case SYMBOL:
-        case SHAPE:
-        case TEXT:
-        case BACKGROUND_IMAGE:
-            state.manipulateRoom(event["room_id"], [event, object_type](
-                                                       RoomState &room) {
-                room.manipulatePage(event["page_id"],
-                                    [event, object_type](Page &page) mutable {
-                                        std::unique_ptr<CanvasObject> object =
-                                            createCanvasObject(object_type);
-                                        object->fromJson(event);
-                                        page.addObject(std::move(object));
-                                    });
-            });
-            break;
-        default:
-            throw "invalid object type";
-        }
-        break;
-    }
-    case DELETE: {
-        auto object_type = static_cast<EventObjectType>(event["object_type"]);
-        switch (object_type) {
-        case ROOM: {
-            throw "room deletion not implemented";
-            break;
-        }
-        case PAGE: {
-            state.manipulateRoom(event["room_id"], [event](RoomState &room) {
+        case DELETE:
+            state.manipulateRoom(event["room_id"], [event](RoomState& room) {
                 room.applyDeletePageEvent(event);
             });
             break;
         }
-        case STROKE:
-        case SYMBOL:
-        case SHAPE:
-        case TEXT:
-        case BACKGROUND_IMAGE: {
-            state.manipulateRoom(event["room_id"], [event](RoomState &room) {
-                uint64_t object_id = event["object_id"];
-                room.manipulatePage(event["page_id"], [object_id](Page &page) {
-                    page.deleteObject(object_id);
+        break;
+    }
+    case USER: {
+        auto event_type = static_cast<User::UserEventType>(event["event_type"]);
+        switch (event_type) {
+        case User::UserEventType::CREATE:
+            throw std::logic_error("only http request should create user");
+            break;
+        case User::UserEventType::DELETE:
+            throw std::logic_error("can't delete user");
+            break;
+        default:
+            state.manipulateRoom(event["room_id"], [event](RoomState& room) {
+                room.manipulateUser(event["username"], [&](User& user) {
+                    user.applyEvent(event);
                 });
             });
             break;
         }
+        break;
+    }
+    case STROKE:
+    case SYMBOL:
+    case SHAPE:
+    case TEXT: {
+        auto event_type = static_cast<CanvasObject::CanvasObjectEventType>(event["event_type"]);
+        switch (event_type) {
+        case CanvasObject::CanvasObjectEventType::CREATE:
+            state.manipulateRoom(event["room_id"], [event, object_type](RoomState& room) {
+                room.manipulatePage(event["page_id"], [event, object_type](Page& page) mutable {
+                    std::unique_ptr<CanvasObject> object = createCanvasObject(object_type);
+                    object->fromJson(event);
+                    page.addObject(std::move(object));
+                });
+            });
+            break;
+        case CanvasObject::CanvasObjectEventType::DELETE:
+            state.manipulateRoom(event["room_id"], [event](RoomState& room) {
+                uint64_t object_id = event["object_id"];
+                room.manipulatePage(event["page_id"], [object_id](Page& page) {
+                    page.deleteObject(object_id);
+                });
+            });
+            break;
         default:
-            throw "invalid object type";
+            state.manipulateRoom(event["room_id"], [event](RoomState& room) {
+                uint64_t object_id = event["object_id"];
+                room.manipulatePage(event["page_id"], [object_id, event](Page& page) {
+                    page.manipulateObject(object_id,
+                        [event](CanvasObject& canvas_object) {
+                            canvas_object.applyEvent(event);
+                        });
+                });
+            });
+            break;
         }
         break;
     }
-    case MOVE:
-    case SCALE:
-    case ROTATE:
-    case APPEND:
-    case EDIT: {
-        // assume its an object
-        state.manipulateRoom(event["room_id"], [event](RoomState &room) {
-            uint64_t object_id = event["object_id"];
-            room.manipulatePage(
-                event["page_id"], [object_id, event](Page &page) {
-                    page.manipulateObject(object_id,
-                                          [event](CanvasObject &canvas_object) {
-                                              canvas_object.applyEvent(event);
-                                          });
-                });
+    }
+
+    // forward messages to everyone else in the room
+    state.manipulateRoom(event["room_id"], [&](RoomState& room) {
+        room.forEachUser([&](const User& other_user) {
+            if (user == other_user) {
+                return;
+            }
+            other_user.sendEvent(message);
         });
-        break;
-    }
-    default: {
-        throw "event type not recognized in clientwebsockethandler";
-        break;
-    }
-    }
-
-    // forward messages to everyone
-    for (auto other_user : ws_connections) {
-        if (other_user.second == user)
-            continue;
-        // TODO: make this work
-
-        // if (other_user.second.room_id != event["room_id"]) {
-        //     continue;
-        // }
-
-        other_user.second.sendEvent(message);
-    }
+    });
 }

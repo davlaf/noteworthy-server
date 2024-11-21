@@ -3,19 +3,14 @@
 enum EventType {
     CREATE,
     DELETE,
-    MOVE,
-    SCALE,
-    ROTATE,
-    APPEND,
-    EDIT,
 };
 
 enum EventObjectType {
     ROOM,
     PAGE,
+    USER,
     STROKE,
     SYMBOL,
     SHAPE,
     TEXT,
-    BACKGROUND_IMAGE,
 };

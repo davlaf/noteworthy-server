@@ -28,10 +28,11 @@ class EventsEnum(Enum):
     DELETE_SYMBOL = auto()
 
 async def test_websocket():
-    uri = "ws://localhost:8081/"
+    uri = "ws://localhost:8081?username=davfid&room_id=ABCDE"
     try:
-        async with websockets.connect(uri, subprotocols=['echo-protocol']) as websocket:
+        async with websockets.connect(uri) as websocket:
             # Send a short message
+            print("connected")
             message = json.dumps(
                 {
                     "type": EventsEnum.NEW_STROKE.value,
@@ -48,11 +49,11 @@ async def test_websocket():
             )
             print(f"Sending: {message}")
             await websocket.send(message)
-
-            # Wait for response
-            while True:
-                response = await websocket.recv()
-                print(f"Received: {response}")
+            print("sent")
+            # # Wait for response
+            # while True:
+            #     response = await websocket.recv()
+            #     print(f"Received: {response}")
     except websockets.exceptions.ConnectionClosed as e:
         print(f"Connection closed with error: {e}")
     except Exception as e:

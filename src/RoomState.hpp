@@ -100,6 +100,12 @@ public:
         throw std::runtime_error("not supposed to apply event to page");
     }
 
+#ifdef NOTEWORTHY_QT
+    virtual void updateQtScene() override {
+        // do nothing
+    };
+#endif
+
 private:
     std::mutex page_mutex;
     std::unordered_map<uint64_t, std::unique_ptr<CanvasObject>> object_map;
@@ -118,9 +124,11 @@ public:
         , owner_id(owner_id)
         , password(password)
     {
-        auto owner_connection = std::make_unique<User>(room_id, owner_id, nullptr);
+        auto owner_connection = std::make_unique<User>(room_id, owner_id);
         addUser(std::move(owner_connection));
     }
+
+    RoomState() = default;
 
     enum RoomEventType {
         CREATE,
@@ -166,7 +174,7 @@ public:
         // add users
         for (const auto& [username, user] : users) {
             nlohmann::json user_info;
-            user->toJson(user_info);
+            user->createCreateEvent(user_info);
             json.push_back(user_info);
         }
 
@@ -188,8 +196,10 @@ public:
 
     void applyCreateRoomEvent(const nlohmann::json& json)
     {
-        fromJson(json);
         page_map.clear();
+        page_order.clear();
+        users.clear();
+        fromJson(json);
     }
 
     void applyInsertPageEvent(const nlohmann::json& json)
@@ -406,6 +416,17 @@ public:
             manipulator(*user);
         }
     }
+
+#ifdef NOTEWORTHY_QT
+    virtual void updateQtScene() override {
+        // do nothing
+    };
+
+    virtual std::shared_ptr<QGraphicsScene> getScene(uint64_t page_id)
+    {
+        return page_map.at(page_id)->scene;
+    }
+#endif
 
 private:
     std::mutex room_mutex;

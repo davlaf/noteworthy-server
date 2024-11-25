@@ -19,14 +19,14 @@ public:
 #ifndef NOTEWORTHY_QT
     struct lws* socket;
 
-    User(std::string room_id, std::string username, struct lws* socket)
+    User(std::string room_id, std::string username, struct lws* socket = nullptr)
         : SendableObject(room_id)
         , username(username)
         , socket(socket) {};
-#endif
-
+#else
     User(std::string room_id, std::string username)
         : username(username) {};
+#endif
 
     User() = default;
 
@@ -111,6 +111,11 @@ public:
         }
         };
     }
+#ifdef NOTEWORTHY_QT
+    virtual void updateQtScene() override {
+        // do nothing
+    };
+#endif
 
 #ifndef NOTEWORTHY_QT
     bool operator==(const User& other) const

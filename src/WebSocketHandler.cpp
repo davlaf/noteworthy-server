@@ -377,6 +377,15 @@ void WebSocketHandler::handleEvent(User& user, const std::string& message)
             if (user == other_user) {
                 return;
             }
+
+            if (!other_user.is_connected) {
+                return;
+            }
+
+            if (other_user.is_connected && other_user.socket == nullptr) {
+                throw "AAAA user is connected but their socket is null";
+            }
+
             other_user.sendEvent(message);
         });
     });

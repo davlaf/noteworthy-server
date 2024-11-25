@@ -281,7 +281,8 @@ class RoomTests(unittest.TestCase):
             {
                 "is_connected": False,
                 "is_kicked": False,
-                "object_type": 2,
+                "event_type": User.UserEventType.CREATE.value,
+                "object_type": EventObjectType.USER.value,
                 "room_id": room_id,
                 "username": username
             }

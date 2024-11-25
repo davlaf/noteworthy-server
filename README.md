@@ -1,7 +1,7 @@
 #Noteworthy Server
 
 ## Note on code contents
-This project is only ~70% C++ which is lower than the required 80% but the non-C++ code is only used for testing, build and deployment configuration. 100% of the behavior of the project is implemented in C++. Also, if you also consider the Noteworthy QT repository the code is ___ C++
+This project is only ~70% C++ which is lower than the required 80%. However the non-C++ code is only used for testing, build and deployment configuration. 100% of the behavior of the project is implemented in C++. Also, if you also consider the Noteworthy QT repository the code is 94% C++ which is well over the limit.
 Calculation (valid as of November 25th)
 
 | Repository        | Lines of code | % C++ code |
@@ -10,11 +10,7 @@ Calculation (valid as of November 25th)
 | Noteworthy QT     |         24458 |        97% |
 | Total             |         27218 |    **94%** |
 
-Calculation: $$\frac{2760 \cdot 70\% + 24458 \cdot 97\%}{27218}$$
-
-Noteworthy Server lines of code: 2760
-
-Noteworthy QT lines of code
+Calculation: $$\frac{2760 \cdot 70\% + 24458 \cdot 97\%}{27218} = 94\%$$
 
 ## Compiling/Debugging Locally
 There are a few shell scripts to run to get started. Note this was only tested on Ubuntu with WSL.

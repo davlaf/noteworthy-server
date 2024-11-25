@@ -16,7 +16,7 @@ class Hosts(Enum):
     LOCAL_HTTP = "http://localhost:8080"
     LOCAL_WS = "ws://localhost:8081"
     HOSTED_HTTP = "https://noteworthy.howdoesthiseven.work"
-    HOSTED_WS = "wss://noteworthy.howdoesthiseven.work"
+    HOSTED_WS = "wss://nw-ws.howdoesthiseven.work"
 
 HOST_HTTP = Hosts.LOCAL_HTTP.value
 HOST_WS = Hosts.LOCAL_WS.value

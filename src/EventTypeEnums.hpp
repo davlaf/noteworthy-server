@@ -1,10 +1,5 @@
 #pragma once
 
-enum EventType {
-    CREATE,
-    DELETE,
-};
-
 enum EventObjectType {
     ROOM,
     PAGE,

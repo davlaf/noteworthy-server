@@ -8,7 +8,7 @@ using json = nlohmann::json; // Define a shorthand for the json type
 
 class WebSocketHandler {
 public:
-    static std::map<struct lws*, struct UserConnection> ws_connections;
+    static std::unordered_map<struct lws*, struct UserConnection> ws_connections;
 
     static int startServer(int port);
     static int callbackEcho(struct lws* connection,

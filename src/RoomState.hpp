@@ -14,7 +14,7 @@
 #include "User.hpp"
 #include "nlohmann/ordered_map.hpp"
 
-class Page {
+class Page : public SendableObject {
 public:
     uint64_t page_id;
 #ifdef NOTEWORTHY_QT
@@ -25,6 +25,42 @@ public:
         return pointer_to_id_map.at(item);
     }
 #endif
+    enum PageEventType {
+        CREATE, // UNUSED BUT DO NOT TOUCH
+        DELETE, // DO NOT TOUCH
+        INSERT,
+    };
+
+    virtual EventObjectType getObjectType() override { return PAGE; }
+
+    virtual void addMetaInformation(nlohmann::json& json) override
+    {
+        json["page_id"] = page_id;
+        SendableObject::addMetaInformation(json);
+    }
+
+    virtual void retrieveMetaInformation(const nlohmann::json& json) override
+    {
+        json.at("page_id").get_to(page_id);
+        SendableObject::retrieveMetaInformation(json);
+    }
+
+    virtual void toJson(nlohmann::json& json) override
+    {
+        addMetaInformation(json);
+    }
+
+    virtual void fromJson(const nlohmann::json& json) override
+    {
+        retrieveMetaInformation(json);
+    }
+
+    void createInsertPageEvent(nlohmann::json& json, uint64_t previous_page_id)
+    {
+        addMetaInformation(json);
+        json["event_type"] = INSERT;
+        json["previous_page_id"] = previous_page_id;
+    }
 
     std::unique_ptr<CanvasObject> deleteObject(uint64_t id)
     {
@@ -59,22 +95,26 @@ public:
         }
     }
 
+    virtual void applyEvent(const nlohmann::json& event) override
+    {
+        throw std::runtime_error("not supposed to apply event to page");
+    }
+
 private:
     std::mutex page_mutex;
-    std::map<uint64_t, std::unique_ptr<CanvasObject>> object_map;
+    std::unordered_map<uint64_t, std::unique_ptr<CanvasObject>> object_map;
 #ifdef NOTEWORTHY_QT
-    std::map<QGraphicsItem*, uint64_t> pointer_to_id_map;
+    std::unordered_map<QGraphicsItem*, uint64_t> pointer_to_id_map;
 #endif
 };
 
-class RoomState {
+class RoomState : public SendableObject {
 public:
-    std::string room_id;
     std::string owner_id;
     std::string password;
 
     RoomState(std::string room_id, std::string owner_id, std::string password)
-        : room_id(room_id)
+        : SendableObject(room_id)
         , owner_id(owner_id)
         , password(password)
     {
@@ -82,29 +122,47 @@ public:
         addUser(std::move(owner_connection));
     }
 
-    void toJson(nlohmann::json& json)
+    enum RoomEventType {
+        CREATE,
+        DELETE,
+        CHANGE_PASSWORD,
+        PROMOTE_USER,
+    };
+
+    virtual EventObjectType getObjectType() override { return ROOM; }
+
+    virtual void addMetaInformation(nlohmann::json& json) override
     {
+        SendableObject::addMetaInformation(json);
+    }
+
+    virtual void retrieveMetaInformation(const nlohmann::json& json) override
+    {
+        SendableObject::retrieveMetaInformation(json);
+    }
+
+    virtual void toJson(nlohmann::json& json) override
+    {
+        addMetaInformation(json);
         json["owner_id"] = owner_id;
-        json["room_id"] = room_id;
         json["password"] = password;
         json["object_type"] = ROOM;
     }
 
-    void fromJson(const nlohmann::json& json)
+    virtual void fromJson(const nlohmann::json& json) override
     {
+        retrieveMetaInformation(json);
         json.at("owner_id").get_to(owner_id);
-        json.at("room_id").get_to(room_id);
         json.at("password").get_to(password);
     }
 
     void toJsonEventList(nlohmann::json& json)
     {
-
         // std::lock_guard<std::mutex> lock(room_mutex);
         // first do a create room event
-        nlohmann::json home_json;
-        createCreateRoomEvent(home_json);
-        json.push_back(home_json);
+        nlohmann::json room_json;
+        createCreateEvent(room_json);
+        json.push_back(room_json);
         // add users
         for (const auto& [username, user] : users) {
             nlohmann::json user_info;
@@ -117,8 +175,9 @@ public:
         // are in order
         forEachReverse([this, &json](Page& page) mutable {
             nlohmann::json create_page_json;
-            createInsertPageEvent(create_page_json, 0, page.page_id);
+            page.createInsertPageEvent(create_page_json, 0);
             json.push_back(create_page_json);
+
             page.forEach([this, &json](CanvasObject& object) mutable {
                 nlohmann::json create_canvas_object_json;
                 object.createCreateEvent(create_canvas_object_json);
@@ -127,48 +186,68 @@ public:
         });
     }
 
-    void createCreateRoomEvent(nlohmann::json& json)
-    {
-        toJson(json);
-        json["event_type"] = CREATE;
-    }
-
     void applyCreateRoomEvent(const nlohmann::json& json)
     {
         fromJson(json);
         page_map.clear();
     }
 
-    void createInsertPageEvent(nlohmann::json& json, uint64_t previous_page_id,
-        uint64_t new_page_id)
-    {
-        json["room_id"] = room_id;
-        json["event_type"] = CREATE;
-        json["object_type"] = PAGE;
-        json["page_id"] = new_page_id;
-        json["previous_page_id"] = previous_page_id;
-    }
-
     void applyInsertPageEvent(const nlohmann::json& json)
     {
         std::unique_ptr<Page> page = std::make_unique<Page>();
-        json.at("page_id").get_to(page->page_id);
+        page->fromJson(json);
         uint64_t previous_page_id = json["previous_page_id"];
         addPageAfter(previous_page_id, std::move(page));
     }
 
-    void createDeletePageEvent(nlohmann::json& json, uint64_t page_id)
+    void createChangePasswordEvent(nlohmann::json& json, std::string new_password)
     {
-        json["room_id"] = room_id;
-        json["event_type"] = DELETE;
-        json["object_type"] = PAGE;
-        json["page_id"] = page_id;
+        addMetaInformation(json);
+        json["event_type"] = RoomEventType::CHANGE_PASSWORD;
+        json["new_password"] = new_password;
     }
 
-    void applyDeletePageEvent(const nlohmann::json& json)
+    void applyChangePasswordEvent(const nlohmann::json& json)
     {
-        uint64_t page_id = json["page_id"];
-        deletePage(page_id);
+        std::string new_password = json.at("new_password");
+        password = new_password;
+    }
+
+    void createPromoteUserEvent(nlohmann::json& json, std::string username)
+    {
+        addMetaInformation(json);
+        json["event_type"] = RoomEventType::PROMOTE_USER;
+        json["username"] = username;
+    }
+
+    void applyPromoteUserEvent(const nlohmann::json& json)
+    {
+        std::string username = json.at("username");
+        owner_id = username;
+    }
+
+    virtual void applyEvent(const nlohmann::json& json) override
+    {
+        auto event_type = static_cast<RoomEventType>(json["event_type"]);
+        switch (event_type) {
+        case RoomEventType::CREATE: {
+            // should only be done on the client!!
+            applyCreateRoomEvent(json);
+            break;
+        }
+        case RoomEventType::DELETE: {
+            throw std::runtime_error("shouldn't delete room from roomState");
+            break;
+        }
+        case RoomEventType::CHANGE_PASSWORD: {
+            applyChangePasswordEvent(json);
+            break;
+        }
+        case RoomEventType::PROMOTE_USER: {
+            applyPromoteUserEvent(json);
+            break;
+        }
+        }
     }
 
     void deletePage(uint64_t id)
@@ -185,13 +264,15 @@ public:
         page_map[new_page_id] = std::move(page); // Store unique_ptr in the map
 
         if (previous_page_id == 0) {
-            page_order.push_back(new_page_id);
+            page_order.push_front(new_page_id);
             return;
         }
 
         // Insert page after previous page in the order
         auto it = std::find(page_order.begin(), page_order.end(), previous_page_id);
-        assert(it != page_order.end()); // Ensure the previous page was found
+        if (it == page_order.end()) {
+            throw std::runtime_error("page to add after not found");
+        }
         page_order.insert(std::next(it), new_page_id);
     }
 
@@ -328,10 +409,10 @@ public:
 
 private:
     std::mutex room_mutex;
-    std::map<uint64_t, std::unique_ptr<Page>>
+    std::unordered_map<uint64_t, std::unique_ptr<Page>>
         page_map; // Use unique_ptr for automatic memory management
     std::list<uint64_t> page_order;
-    std::map<std::string, std::unique_ptr<User>> users; // User management map
+    std::unordered_map<std::string, std::unique_ptr<User>> users; // User management map
 };
 
 #ifdef NOTEWORTHY_QT

@@ -1,7 +1,6 @@
 #pragma once
 #include <iostream>
 
-#include "UserRoles.hpp"
 #ifndef NOTEWORTHY_QT
 #include <libwebsockets.h>
 #endif
@@ -74,16 +73,19 @@ public:
 
     void createConnectEvent(nlohmann::json& json)
     {
+        addMetaInformation(json);
         json["event_type"] = CONNECT;
     }
 
     void createDisconnectEvent(nlohmann::json& json)
     {
+        addMetaInformation(json);
         json["event_type"] = DISCONNECT;
     }
 
     void createKickEvent(nlohmann::json& json)
     {
+        addMetaInformation(json);
         json["event_type"] = KICK;
     }
 

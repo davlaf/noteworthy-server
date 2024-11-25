@@ -1,6 +1,5 @@
 #include "ServerState.hpp"
 #include "User.hpp"
-#include "UserRoles.hpp"
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <pistache/endpoint.h>
@@ -50,7 +49,7 @@ private:
         // create a room with that user as owner
         // with no password
         std::string room_id = state.createRoom(username_query);
-        response.send(Http::Code::Ok, room_id);
+        response.send(Http::Code::Created, room_id);
     }
 
     void handleNotFound(const Rest::Request& request,

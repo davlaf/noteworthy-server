@@ -1,23 +1,23 @@
 #pragma once
 #include "EventTypeEnums.hpp"
+#include "SendableObject.hpp"
 #include "nlohmann/json.hpp"
 
 #ifdef NOTEWORTHY_QT
 #include <qgraphicsitem.h>
 #endif
 
-class CanvasObject {
+class CanvasObject : public SendableObject {
 public:
     std::string owner_id;
-    std::string room_id;
     uint64_t page_id;
     uint64_t object_id;
 #ifdef NOTEWORTHY_QT
     QGraphicsItem* item;
 #endif
     enum CanvasObjectEventType {
-        CREATE,
-        DELETE,
+        CREATE, // IMPORTANT DO NOT MOVE
+        DELETE, // IMPORTANT DO NOT MOVE
         MOVE,
         SCALE,
         ROTATE,
@@ -27,44 +27,21 @@ public:
 
     virtual ~CanvasObject() = default;
 
-    virtual EventObjectType getObjectType() = 0;
-
-    virtual void toJson(nlohmann::json& json) = 0;
-    virtual void fromJson(const nlohmann::json& json) = 0;
-
-    void addMetaInformation(nlohmann::json& json)
+    void addMetaInformation(nlohmann::json& json) override
     {
         json["owner_id"] = owner_id;
-        json["room_id"] = room_id;
         json["page_id"] = page_id;
-        json["object_type"] = getObjectType();
         json["object_id"] = object_id;
+        SendableObject::addMetaInformation(json);
     };
 
-    void retrieveMetaInformation(const nlohmann::json& json)
+    void retrieveMetaInformation(const nlohmann::json& json) override
     {
         json.at("owner_id").get_to(owner_id);
-        json.at("room_id").get_to(room_id);
         json.at("page_id").get_to(page_id);
         json.at("object_id").get_to(object_id);
+        SendableObject::retrieveMetaInformation(json);
     };
-
-    // function that gets called after a change gets applied
-    // only needs to be implemented for qt side
-#ifdef NOTEWORTHY_QT
-    virtual void updateQtScene() = 0;
-#endif
-    void createCreateEvent(nlohmann::json& json)
-    {
-        toJson(json);
-        json["event_type"] = EventType::CREATE;
-    }
-
-    void createDeleteEvent(nlohmann::json& json)
-    {
-        addMetaInformation(json);
-        json["event_type"] = EventType::DELETE;
-    }
 
     void createMoveEvent(nlohmann::json& json, double distance_x,
         double distance_y)
@@ -122,7 +99,7 @@ public:
         throw std::logic_error("Applying edit not implemented.");
     }
 
-    void applyEvent(const nlohmann::json& json)
+    virtual void applyEvent(const nlohmann::json& json) override
     {
         auto event_type = static_cast<CanvasObjectEventType>(json["event_type"]);
         switch (event_type) {

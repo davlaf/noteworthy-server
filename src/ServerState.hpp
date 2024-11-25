@@ -70,7 +70,7 @@ private:
     const std::string valid_room_id_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345679";
 
     std::mutex room_map_mutex;
-    std::map<std::string, std::unique_ptr<RoomState>>
+    std::unordered_map<std::string, std::unique_ptr<RoomState>>
         room_map; // Use unique_ptr for automatic memory management
 };
 

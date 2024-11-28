@@ -240,9 +240,10 @@ std::unique_ptr<CanvasObject> createCanvasObject(EventObjectType object_type)
         auto stroke = std::make_unique<Stroke>();
         return std::move(stroke);
     }
-    case SYMBOL:
-        std::cout << "Symbol creation not supported." << std::endl;
-        break;
+    case SYMBOL: {
+        auto symbol = std::make_unique<Symbol>();
+        return std::move(symbol);
+    }
     case SHAPE:
         std::cout << "Shape creation not supported." << std::endl;
         break;

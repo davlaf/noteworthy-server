@@ -128,7 +128,7 @@ public:
 
         double angle_radians = std::atan2(bottom_left_point.y() - top_left_point.y(),
             bottom_left_point.x() - top_left_point.x());
-        double angle_degrees = angle_radians * 180.0 / M_PI;
+        double angle_degrees = angle_radians * 180.0 / M_PI - 90;
 
         QTransform transform;
         transform.translate(top_left_point.x(), top_left_point.y());
@@ -139,5 +139,3 @@ public:
     }
 #endif
 };
-
-

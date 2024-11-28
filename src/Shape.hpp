@@ -35,7 +35,7 @@ public:
 
     enum ShapeType shape_type;
 
-    virtual EventObjectType getObjectType() {return SYMBOL;};
+    virtual EventObjectType getObjectType() {return SHAPE;};
 
     virtual void toJson(nlohmann::json& json) {
         addMetaInformation(json);
@@ -102,9 +102,9 @@ public:
     }
 
 #ifdef NOTEWORTHY_QT
-    Shape(ShapeType type, QGraphicsSvgItem *symbol_svg)
+    Shape(ShapeType type, QGraphicsSvgItem *shape_svg)
         : shape_type(type) {
-        item = static_cast<QGraphicsItem*>(symbol_svg);
+        item = static_cast<QGraphicsItem*>(shape_svg);
     };
 
     Shape(ShapeType type): shape_type(type) {};

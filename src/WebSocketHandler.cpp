@@ -244,15 +244,17 @@ std::unique_ptr<CanvasObject> createCanvasObject(EventObjectType object_type)
         auto symbol = std::make_unique<Symbol>();
         return std::move(symbol);
     }
-    case SHAPE:
-        std::cout << "Shape creation not supported." << std::endl;
-        break;
-    case TEXT:
+    case SHAPE: {
+        auto shape = std::make_unique<Shape>();
+        return std::move(shape);
+    }
+    case TEXT: {
         std::cout << "Text creation not supported." << std::endl;
         break;
-    default:
-        std::cout << "Unsupported object type!";
     }
+    default: {
+        std::cout << "Unsupported object type!";
+    }}
     throw "unsupported object type!";
     return nullptr;
 }

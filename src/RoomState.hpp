@@ -17,11 +17,16 @@
 class Page : public SendableObject {
 public:
     uint64_t page_id;
+    std::string base64_image = "";
 #ifdef NOTEWORTHY_QT
     std::shared_ptr<QGraphicsScene> scene = std::make_shared<QGraphicsScene>();
+    QGraphicsPixmapItem* pixmap;
 
     uint64_t getObjectIdFromGraphicsItem(QGraphicsItem* item)
     {
+        if (pointer_to_id_map.count(item) == 0) {
+            return 0;
+        }
         return pointer_to_id_map.at(item);
     }
 #endif
@@ -29,6 +34,7 @@ public:
         CREATE, // UNUSED BUT DO NOT TOUCH
         DELETE, // DO NOT TOUCH
         INSERT,
+        INSERT_PDF,
     };
 
     virtual EventObjectType getObjectType() override { return PAGE; }
@@ -48,18 +54,28 @@ public:
     virtual void toJson(nlohmann::json& json) override
     {
         addMetaInformation(json);
+        json["base64_image"] = base64_image;
     }
 
     virtual void fromJson(const nlohmann::json& json) override
     {
         retrieveMetaInformation(json);
+        json.at("base64_image").get_to(base64_image);
     }
 
     void createInsertPageEvent(nlohmann::json& json, uint64_t previous_page_id)
     {
-        addMetaInformation(json);
+        toJson(json);
         json["event_type"] = INSERT;
         json["previous_page_id"] = previous_page_id;
+    }
+
+    void createInsertPDFPageEvent(nlohmann::json& json, uint64_t previous_page_id, std::string base64_image)
+    {
+        addMetaInformation(json);
+        json["event_type"] = INSERT_PDF;
+        json["previous_page_id"] = previous_page_id;
+        json["base64_image"] = base64_image;
     }
 
     std::unique_ptr<CanvasObject> deleteObject(uint64_t id)
@@ -183,7 +199,11 @@ public:
         // are in order
         forEachReverse([this, &json](Page& page) mutable {
             nlohmann::json create_page_json;
-            page.createInsertPageEvent(create_page_json, 0);
+            if (page.base64_image == "") {
+                page.createInsertPageEvent(create_page_json, 0);
+            } else {
+                page.createInsertPDFPageEvent(create_page_json, 0, page.base64_image);
+            }
             json.push_back(create_page_json);
 
             page.forEach([this, &json](CanvasObject& object) mutable {
@@ -209,6 +229,17 @@ public:
         uint64_t previous_page_id = json["previous_page_id"];
         addPageAfter(previous_page_id, std::move(page));
     }
+
+#ifdef NOTEWORTHY_QT
+    void applyInsertPDFPageEvent(const nlohmann::json& json)
+    {
+        std::unique_ptr<Page> page = std::make_unique<Page>();
+        page->fromJson(json);
+        uint64_t previous_page_id = json["previous_page_id"];
+
+        addPageAfter(previous_page_id, std::move(page));
+    }
+#endif
 
     void createChangePasswordEvent(nlohmann::json& json, std::string new_password)
     {
@@ -415,6 +446,12 @@ public:
         for (auto const& [username, user] : users) {
             manipulator(*user);
         }
+    }
+
+    void createResetEvent(nlohmann::json& event)
+    {
+        addMetaInformation(event);
+        event["object_type"] = RESET;
     }
 
 #ifdef NOTEWORTHY_QT

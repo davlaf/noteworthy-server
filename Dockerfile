@@ -6,9 +6,6 @@ RUN apt-get -y update && \
     build-essential \
     libwebsockets-dev \
     nlohmann-json3-dev \
-    libmupdf-dev \
-    liblcms2-dev \
-    libfreetype6-dev \
     meson \
     && rm -rf /var/lib/apt/lists/*
 
@@ -16,6 +13,7 @@ RUN apt-get -y update && \
 # Add your source files here
 WORKDIR /usr/src
 COPY ./src ./src
+COPY ./pdfium ./pdfium
 COPY CMakeLists.txt CMakeLists.txt
 
 # Use DockerCMakeLists.txt for building

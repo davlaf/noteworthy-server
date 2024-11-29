@@ -303,6 +303,10 @@ void WebSocketHandler::handleEvent(User& user, const std::string& message)
             });
             break;
         }
+        case Page::PageEventType::INSERT_PDF: {
+            throw std::runtime_error("should only be done with http");
+            break;
+        }
         default: {
             state.manipulateRoom(event["room_id"], [&event](RoomState& room) {
                 room.manipulatePage(event["page_id"], [&](Page& page) {
@@ -369,6 +373,9 @@ void WebSocketHandler::handleEvent(User& user, const std::string& message)
             break;
         }
         break;
+    }
+    case RESET: {
+        throw std::runtime_error("shouldn't get reset signal");
     }
     }
 

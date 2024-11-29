@@ -8,4 +8,5 @@ enum EventObjectType {
     SYMBOL,
     SHAPE,
     TEXT,
+    RESET,
 };

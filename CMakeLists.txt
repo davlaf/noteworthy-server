@@ -48,21 +48,30 @@ find_package(PkgConfig REQUIRED)
 # Use pkg-config to find Pistache, WebSockets, nlohmann_json, LCMS2, and MuPDF
 pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
 pkg_check_modules(NLOHMANN_JSON REQUIRED nlohmann_json)
-pkg_check_modules(LCMS2 REQUIRED lcms2)
-pkg_check_modules(MUPDF REQUIRED mupdf)
+
+
+# Include the PDFium headers
+include_directories(${CMAKE_SOURCE_DIR}/pdfium/include)
+
+# Add the PDFium library
+find_library(PDFIUM_LIB pdfium PATHS "${CMAKE_SOURCE_DIR}/pdfium/lib" NO_DEFAULT_PATH)
+
+# Verify the library was found
+if(NOT PDFIUM_LIB)
+    message(FATAL_ERROR "PDFium library not found!")
+else()
+    message(STATUS "PDFium library found at: ${PDFIUM_LIB}")
+endif()
 
 # Include the header directories for each library found by pkg-config
 include_directories(
     ${LIBWEBSOCKETS_INCLUDE_DIRS}
     ${NLOHMANN_JSON_INCLUDE_DIRS}
-    ${LCMS2_INCLUDE_DIRS}
-    ${MUPDF_INCLUDE_DIRS}
 )
 
 # Link libraries found by pkg-config
 target_link_libraries(${PROJECT_NAME}
     ${LIBWEBSOCKETS_LIBRARIES}
     ${NLOHMANN_JSON_LIBRARIES}
-    ${LCMS2_LIBRARIES}
-    ${MUPDF_LIBRARIES}
+    ${PDFIUM_LIB}
 )

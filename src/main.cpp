@@ -1,5 +1,6 @@
 #include "ServerState.hpp"
 #include "WebSocketHandler.hpp"
+#include "fpdfview.h"
 #include "main-api-server.hpp"
 #include <atomic>
 #include <csignal>
@@ -85,5 +86,9 @@ int main()
     std::string room_id = state.createRoom("ABCDE", "joe", "ggggghh");
     std::string room_id2 = state.createRoom("12345", "david", "");
 
+    // Initialize PDFium
+    FPDF_InitLibrary();
+
     return startServer();
+    FPDF_DestroyLibrary();
 }

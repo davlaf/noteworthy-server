@@ -79,6 +79,9 @@ public:
     std::unique_ptr<CanvasObject> deleteObject(uint64_t id)
     {
         std::lock_guard<std::mutex> lock(page_mutex);
+        if (object_map.count(id) == 0) {
+            return nullptr;
+        }
         std::unique_ptr<CanvasObject> object = std::move(object_map.at(id));
         object_map.erase(id);
         return object;

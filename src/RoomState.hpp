@@ -3,7 +3,6 @@
 #include "CanvasObject.hpp"
 #include <cstdint>
 #include <list>
-#include <map>
 #include <memory> // Include for smart pointers
 #include <mutex>
 #ifdef NOTEWORTHY_QT
@@ -12,7 +11,6 @@
 #endif
 
 #include "User.hpp"
-#include "nlohmann/ordered_map.hpp"
 
 class Page : public SendableObject {
 public:
@@ -25,7 +23,7 @@ public:
     uint64_t getObjectIdFromGraphicsItem(QGraphicsItem* item)
     {
         if (pointer_to_id_map.count(item) == 0) {
-            return 0;
+            return -1;
         }
         return pointer_to_id_map.at(item);
     }
@@ -84,6 +82,11 @@ public:
         std::unique_ptr<CanvasObject> object = std::move(object_map.at(id));
         object_map.erase(id);
         return object;
+    }
+
+    bool hasObject(uint64_t id)
+    {
+        return object_map.count(id) != 0;
     }
 
     void addObject(std::unique_ptr<CanvasObject> object)
@@ -192,6 +195,11 @@ public:
             nlohmann::json user_info;
             user->createCreateEvent(user_info);
             json.push_back(user_info);
+            nlohmann::json connection_info;
+            if (user->is_connected) {
+                user->createConnectEvent(connection_info);
+                json.push_back(connection_info);
+            }
         }
 
         // then add create page event each page and add all the objects of that

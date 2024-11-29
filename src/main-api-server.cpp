@@ -200,7 +200,22 @@ private:
             }
 
             auto user = std::make_unique<User>(room_id, username);
+            nlohmann::json event;
+            user->createCreateEvent(event);
             room.addUser(std::move(user));
+
+            room.forEachUser([&](const User& room_user) {
+                if (!room_user.is_connected) {
+                    return;
+                }
+
+                if (room_user.is_connected && room_user.socket == nullptr) {
+                    return;
+                    throw "AAAA user is connected but their socket is null";
+                }
+
+                room_user.sendEvent(event.dump());
+            });
 
             // Return success response
             response.send(Http::Code::Created, "User created successfully");
@@ -299,6 +314,7 @@ private:
                 }
 
                 if (user.is_connected && user.socket == nullptr) {
+                    return;
                     throw "AAAA user is connected but their socket is null";
                 }
 

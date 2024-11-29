@@ -170,15 +170,21 @@ int WebSocketHandler::callbackEcho(
             return -1;
         }
 
-        state.manipulateRoom(room_id, [username, connection, user_ptr_ptr](RoomState& room) {
-            room.manipulateUser(username, [connection, user_ptr_ptr](User& room_user) {
+        nlohmann::json event;
+        state.manipulateRoom(room_id, [&event, username, connection, user_ptr_ptr](RoomState& room) {
+            room.manipulateUser(username, [&event, connection, user_ptr_ptr](User& room_user) {
                 room_user.socket = connection;
-                room_user.is_connected = true;
+
+                room_user.createConnectEvent(event);
             });
             // Store connection data
             delete *user_ptr_ptr;
             *user_ptr_ptr = room.getUserPtr(username);
         });
+
+        auto useless_user = User();
+        useless_user.room_id = room_id;
+        handleEvent(useless_user, event.dump());
 
         break;
     }
@@ -209,6 +215,11 @@ int WebSocketHandler::callbackEcho(
         }
 
         user.is_connected = false;
+        nlohmann::json event;
+        user.createDisconnectEvent(event);
+        auto useless_user = User();
+        useless_user.room_id = user.room_id;
+        handleEvent(useless_user, event.dump());
         // // check if no one is in room anymore and delete it
         // // risky for demo should add some timer thing
         // bool is_anyone_connected = false;
@@ -254,7 +265,8 @@ std::unique_ptr<CanvasObject> createCanvasObject(EventObjectType object_type)
     }
     default: {
         std::cout << "Unsupported object type!";
-    }}
+    }
+    }
     throw "unsupported object type!";
     return nullptr;
 }

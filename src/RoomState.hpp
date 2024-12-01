@@ -106,7 +106,10 @@ public:
         const std::function<void(CanvasObject&)>& manipulator)
     {
         std::lock_guard<std::mutex> lock(page_mutex);
-        manipulator(*object_map[id]);
+        if (object_map.count(id) == 0) {
+            return;
+        }
+        manipulator(*object_map.at(id));
     }
 
     void forEach(const std::function<void(CanvasObject&)>& manipulator)

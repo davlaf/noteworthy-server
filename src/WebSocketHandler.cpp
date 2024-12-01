@@ -367,11 +367,17 @@ void WebSocketHandler::handleEvent(User& user, const std::string& message)
             });
             break;
         case CanvasObject::CanvasObjectEventType::DELETE:
+            std::cout << "trying to delete stroke" << std::endl;
+
             state.manipulateRoom(event["room_id"], [&event](RoomState& room) {
                 uint64_t object_id = event["object_id"];
-                room.manipulatePage(event["page_id"], [object_id](Page& page) {
-                    page.deleteObject(object_id);
-                });
+                try {
+                    room.manipulatePage(event["page_id"], [object_id](Page& page) {
+                        page.deleteObject(object_id);
+                    });
+                } catch (...) {
+                    std::cout << "trying to delete caught error" << std::endl;
+                }
             });
             break;
         default:

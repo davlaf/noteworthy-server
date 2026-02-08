@@ -1,4 +1,5 @@
-#Noteworthy Server
+# Noteworthy Server
+This is the backend for a live slides annotation web app made for a group project in my software development methodology course. We wanted to make a web app, but the course required over 80% of the code to be in C++. To sidestep this limitation, our group decided to use QT with emscripten to create the frontend.
 
 ## Note on code contents
 This project is only ~70% C++ which is lower than the required 80%. However the non-C++ code is only used for testing, build and deployment configuration. 100% of the behavior of the project is implemented in C++. Also, if you also consider the Noteworthy QT repository the code is 94% C++ which is well over the limit.
@@ -20,4 +21,3 @@ There are a few shell scripts to run to get started. Note this was only tested o
 
 ## Using Docker
 To run the server platform independently you can install Docker Desktop and run `docker compose up`
-
